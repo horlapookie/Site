@@ -1,86 +1,82 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Terminal, Play, Trash2, Circle } from "lucide-react";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Terminal, Power, Trash2, RotateCw } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+interface Bot {
+  _id: string;
+  herokuAppName: string;
+  botNumber: string;
+  status: "running" | "stopped" | "deploying" | "failed";
+  deployedAt: string;
+}
 
 interface BotCardProps {
-  id: string;
-  botNumber: string;
-  status: "running" | "stopped" | "deploying";
-  deployedAt: Date;
-  onViewLogs?: () => void;
-  onRestart?: () => void;
-  onDelete?: () => void;
+  bot: Bot;
+  onViewLogs: (botId: string) => void;
+  onRestart: (botId: string) => void;
+  onDelete: (botId: string) => void;
 }
 
 const statusConfig = {
-  running: { label: "Running", color: "text-green-500", bg: "bg-green-500/10" },
-  stopped: { label: "Stopped", color: "text-red-500", bg: "bg-red-500/10" },
-  deploying: { label: "Deploying", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+  running: { label: "Running", variant: "default" as const, color: "bg-green-500" },
+  stopped: { label: "Stopped", variant: "secondary" as const, color: "bg-gray-500" },
+  deploying: { label: "Deploying", variant: "outline" as const, color: "bg-blue-500" },
+  failed: { label: "Failed", variant: "destructive" as const, color: "bg-red-500" },
 };
 
-export function BotCard({ id, botNumber, status, deployedAt, onViewLogs, onRestart, onDelete }: BotCardProps) {
-  const config = statusConfig[status];
+export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) {
+  const config = statusConfig[bot.status];
 
   return (
-    <Card className="hover-elevate" data-testid={`card-bot-${id}`}>
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 pb-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Circle className={`h-2 w-2 fill-current ${config.color}`} />
-            <Badge variant="secondary" className={`${config.bg} ${config.color} border-0`}>
+    <Card className="p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-mono text-lg font-semibold">{bot.herokuAppName}</h3>
+            <Badge variant={config.variant}>
+              <span className={`inline-block w-2 h-2 rounded-full ${config.color} mr-1`} />
               {config.label}
             </Badge>
           </div>
-          <p className="font-mono text-sm text-muted-foreground" data-testid={`text-bot-number-${id}`}>
-            +{botNumber}
+          <p className="text-sm text-muted-foreground">
+            Number: {bot.botNumber}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Deployed {formatDistanceToNow(new Date(bot.deployedAt), { addSuffix: true })}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-muted-foreground">Deployed</p>
-          <p className="text-sm font-medium">{format(deployedAt, "MMM d, yyyy")}</p>
-          <p className="text-xs text-muted-foreground">{format(deployedAt, "h:mm a")}</p>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pb-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">App Name</span>
-            <span className="font-mono font-medium">eclipse-md-{id.slice(0, 6)}</span>
-          </div>
-        </div>
-      </CardContent>
+      </div>
 
-      <CardFooter className="flex flex-wrap gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="gap-2 flex-1"
-          onClick={onViewLogs}
-          data-testid={`button-view-logs-${id}`}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onViewLogs(bot._id)}
+          className="flex-1"
         >
-          <Terminal className="h-4 w-4" />
+          <Terminal className="w-4 h-4 mr-2" />
           View Logs
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
-          onClick={onRestart}
-          data-testid={`button-restart-${id}`}
+          onClick={() => onRestart(bot._id)}
+          disabled={bot.status !== "running"}
         >
-          <Play className="h-4 w-4" />
+          <RotateCw className="w-4 h-4" />
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
-          onClick={onDelete}
-          data-testid={`button-delete-${id}`}
+          onClick={() => onDelete(bot._id)}
+          className="text-destructive"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="w-4 h-4" />
         </Button>
-      </CardFooter>
+      </div>
     </Card>
   );
 }
