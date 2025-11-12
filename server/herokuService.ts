@@ -18,12 +18,13 @@ export interface DeploymentConfig {
 
 export async function createHerokuApp(appName: string, config: DeploymentConfig) {
   try {
-    // Create the app
+    // Create the app under team account
     const app = await heroku.post("/apps", {
       body: {
         name: appName,
         region: "us",
         stack: "heroku-22",
+        team: "kephakings1", // Deploy to team account
       },
     });
 
