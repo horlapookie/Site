@@ -18,12 +18,16 @@ export interface DeploymentConfig {
 
 export async function createHerokuApp(appName: string, config: DeploymentConfig) {
   try {
-    // Create the app
+    // Get team name from environment variable (defaults to kephakings1)
+    const teamName = process.env.HEROKU_TEAM || "kephakings1";
+    
+    // Create the app under team account
     const app = await heroku.post("/apps", {
       body: {
         name: appName,
         region: "us",
         stack: "heroku-22",
+        team: teamName,
       },
     });
 

@@ -60,6 +60,7 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) 
           size="sm"
           onClick={() => onViewLogs(bot._id)}
           className="flex-1"
+          data-testid={`button-view-logs-${bot._id}`}
         >
           <Terminal className="w-4 h-4 mr-2" />
           View Logs
@@ -69,6 +70,7 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) 
           size="sm"
           onClick={() => onRestart(bot._id)}
           disabled={bot.status !== "running"}
+          data-testid={`button-restart-${bot._id}`}
         >
           <RotateCw className="w-4 h-4" />
         </Button>
@@ -77,6 +79,7 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) 
           size="sm"
           onClick={() => onDelete(bot._id)}
           className="text-destructive"
+          data-testid={`button-delete-${bot._id}`}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
