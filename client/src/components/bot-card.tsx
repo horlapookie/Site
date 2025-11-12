@@ -28,6 +28,10 @@ const statusConfig = {
 };
 
 export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) {
+  if (!bot || !bot.status) {
+    return null;
+  }
+  
   const config = statusConfig[bot.status];
 
   return (
