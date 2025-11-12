@@ -114,11 +114,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .catch(async (error) => {
           console.error("Heroku deployment failed:", error);
+          
+          // Update bot status to failed
           await Bot.findByIdAndUpdate(bot._id, {
             status: "failed",
           });
-          // Refund coins
-          await storage.updateUserCoins(MOCK_USER_ID, (user.coins || 10));
+          
+          // Refund coins to user
+          const currentUser = await storage.getUser(MOCK_USER_ID);
+          if (currentUser) {
+            await storage.updateUserCoins(MOCK_USER_ID, currentUser.coins + DEPLOYMENT_COST);
+          }
         });
 
       res.status(201).json(bot);

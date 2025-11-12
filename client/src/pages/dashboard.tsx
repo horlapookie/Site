@@ -121,7 +121,7 @@ export default function Dashboard() {
           <EmptyState onDeploy={handleDeploy} />
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {bots.map((bot: any) => (
+            {bots.filter((bot: any) => bot && bot._id).map((bot: any) => (
               <BotCard
                 key={bot._id}
                 bot={bot}

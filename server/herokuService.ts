@@ -77,6 +77,12 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig)
     };
   } catch (error: any) {
     console.error("Heroku deployment error:", error);
+    
+    // Check for specific Heroku errors
+    if (error.statusCode === 422 && error.body?.id === 'verification_required') {
+      throw new Error('Heroku account verification required. Please add payment information at https://heroku.com/verify');
+    }
+    
     throw new Error(`Failed to deploy to Heroku: ${error.message}`);
   }
 }
