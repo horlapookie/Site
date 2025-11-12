@@ -1,41 +1,141 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/header";
 import { BotCard } from "@/components/bot-card";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import { LogViewer } from "@/components/log-viewer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const [bots] = useState([
-    {
-      id: "abc123",
-      botNumber: "2348028336218",
-      status: "running" as const,
-      deployedAt: new Date("2025-01-10T14:30:00"),
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
+  const [selectedBotForLogs, setSelectedBotForLogs] = useState<string | null>(null);
+  const [botToDelete, setBotToDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [isAuthenticated, isLoading, toast]);
+
+  const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
+    queryKey: ["/api/bots"],
+    enabled: isAuthenticated,
+  });
+
+  const restartMutation = useMutation({
+    mutationFn: async (botId: string) => {
+      await apiRequest("POST", `/api/bots/${botId}/restart`);
     },
-    {
-      id: "def456",
-      botNumber: "2349012345678",
-      status: "deploying" as const,
-      deployedAt: new Date("2025-01-12T10:15:00"),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Bot restarted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
     },
-  ]);
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to restart bot",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (botId: string) => {
+      await apiRequest("DELETE", `/api/bots/${botId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Bot deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setBotToDelete(null);
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete bot",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleDeploy = () => {
     setLocation("/deploy");
   };
 
+  const handleSignOut = () => {
+    window.location.href = "/api/logout";
+  };
+
+  if (isLoading || isLoadingBots) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        isAuthenticated={true} 
-        coins={10} 
-        username="johndoe"
-        onSignOut={() => console.log("Sign out")}
+      <Header
+        isAuthenticated={true}
+        coins={user?.coins || 0}
+        username={user?.firstName || user?.email || "User"}
+        onSignOut={handleSignOut}
       />
-      
+
       <main className="container px-4 py-8 md:px-6">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -54,18 +154,51 @@ export default function Dashboard() {
           <EmptyState onDeploy={handleDeploy} />
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {bots.map((bot) => (
+            {bots.map((bot: any) => (
               <BotCard
-                key={bot.id}
-                {...bot}
-                onViewLogs={() => console.log("View logs", bot.id)}
-                onRestart={() => console.log("Restart", bot.id)}
-                onDelete={() => console.log("Delete", bot.id)}
+                key={bot._id}
+                id={bot._id}
+                botNumber={bot.botNumber}
+                status={bot.status}
+                deployedAt={new Date(bot.deployedAt)}
+                onViewLogs={() => setSelectedBotForLogs(bot._id)}
+                onRestart={() => restartMutation.mutate(bot._id)}
+                onDelete={() => setBotToDelete(bot._id)}
               />
             ))}
           </div>
         )}
       </main>
+
+      {selectedBotForLogs && (
+        <div className="fixed inset-0 z-50 bg-background/95 p-4 md:p-6">
+          <LogViewer
+            botId={selectedBotForLogs}
+            onClose={() => setSelectedBotForLogs(null)}
+          />
+        </div>
+      )}
+
+      <AlertDialog open={!!botToDelete} onOpenChange={() => setBotToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Bot Deployment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this bot deployment? This will permanently remove
+              the bot from Heroku and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => botToDelete && deleteMutation.mutate(botToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

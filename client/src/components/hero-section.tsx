@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Zap, Shield, Terminal } from "lucide-react";
 
-export function HeroSection() {
+interface HeroSectionProps {
+  onGetStarted?: () => void;
+}
+
+export function HeroSection({ onGetStarted }: HeroSectionProps) {
   return (
     <div className="relative overflow-hidden bg-background">
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
@@ -23,11 +27,16 @@ export function HeroSection() {
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" className="gap-2" data-testid="button-get-started">
+            <Button size="lg" className="gap-2" onClick={onGetStarted} data-testid="button-get-started">
               Get Started Free
               <Zap className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" data-testid="button-view-docs">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={() => window.open("https://github.com/horlapookie/Eclipse-MD", "_blank")}
+              data-testid="button-view-docs"
+            >
               View Documentation
             </Button>
           </div>

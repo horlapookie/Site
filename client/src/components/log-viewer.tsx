@@ -5,6 +5,7 @@ import { X, Download, Maximize2, Minimize2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
 
 interface LogViewerProps {
   botId: string;
@@ -16,15 +17,13 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const mockLogs = [
-    { time: "2025-01-12 10:23:45", level: "INFO", message: "Starting Eclipse-MD bot..." },
-    { time: "2025-01-12 10:23:46", level: "INFO", message: "Connecting to WhatsApp..." },
-    { time: "2025-01-12 10:23:48", level: "SUCCESS", message: "Connected successfully" },
-    { time: "2025-01-12 10:23:49", level: "INFO", message: "Loading plugins..." },
-    { time: "2025-01-12 10:23:50", level: "INFO", message: "Loaded 45 plugins" },
-    { time: "2025-01-12 10:23:51", level: "SUCCESS", message: "Bot is ready and running" },
-    { time: "2025-01-12 10:24:15", level: "INFO", message: "Received message from +234..." },
-  ];
+  const { data: logsData } = useQuery<{ logs: string }>({
+    queryKey: ["/api/bots", botId, "logs"],
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+
+  const logs = logsData?.logs || "";
+  const logLines = logs.split("\n").filter((line: string) => line.trim());
 
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
@@ -82,15 +81,15 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
         <CardContent className="p-0">
           <ScrollArea className={`${isFullscreen ? "h-[calc(100vh-8rem)]" : "h-96"}`} ref={scrollRef}>
             <div className="bg-black p-4 font-mono text-sm">
-              {mockLogs.map((log, index) => (
-                <div key={index} className="mb-1 flex gap-4 text-gray-300">
-                  <span className="text-gray-500">{log.time}</span>
-                  <span className={`font-semibold ${getLevelColor(log.level)}`}>
-                    [{log.level}]
-                  </span>
-                  <span>{log.message}</span>
-                </div>
-              ))}
+              {logLines.length > 0 ? (
+                logLines.map((line: string, index: number) => (
+                  <div key={index} className="mb-1 text-gray-300">
+                    {line}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500">No logs available yet...</div>
+              )}
             </div>
           </ScrollArea>
         </CardContent>
