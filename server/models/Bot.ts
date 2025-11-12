@@ -1,3 +1,4 @@
+
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBot extends Document {
@@ -48,5 +49,8 @@ const BotSchema = new Schema<IBot>(
     timestamps: true,
   }
 );
+
+// Remove any old indexes that might exist
+BotSchema.index({ containerName: 1 }, { sparse: true });
 
 export default mongoose.models.Bot || mongoose.model<IBot>("Bot", BotSchema);
