@@ -124,10 +124,7 @@ export default function Dashboard() {
             {bots.map((bot: any) => (
               <BotCard
                 key={bot._id}
-                id={bot._id}
-                botNumber={bot.botNumber}
-                status={bot.status}
-                deployedAt={new Date(bot.deployedAt)}
+                bot={bot}
                 onViewLogs={() => setSelectedBotForLogs(bot._id)}
                 onRestart={() => restartMutation.mutate(bot._id)}
                 onDelete={() => setBotToDelete(bot._id)}
