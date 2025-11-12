@@ -1,7 +1,7 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { connectDB } from "./mongodb";
 import Bot from "./models/Bot";
 import { botDeploymentSchema } from "@shared/schema";
@@ -10,17 +10,27 @@ import { createHerokuApp, getAppLogs, restartApp, deleteApp } from "./herokuServ
 const DEPLOYMENT_COST = 5; // coins per deployment
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication
-  await setupAuth(app);
-
   // Connect to MongoDB
   await connectDB();
 
-  // Auth routes
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+  // Mock user ID for development without auth
+  const MOCK_USER_ID = "dev-user-123";
+
+  // Auth routes - return mock user
+  app.get("/api/auth/user", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      // Ensure mock user exists
+      let user = await storage.getUser(MOCK_USER_ID);
+      if (!user) {
+        await storage.upsertUser({
+          id: MOCK_USER_ID,
+          email: "dev@example.com",
+          firstName: "Dev",
+          lastName: "User",
+          profileImageUrl: null,
+        });
+        user = await storage.getUser(MOCK_USER_ID);
+      }
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -28,11 +38,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/login", (req, res) => {
+    res.redirect("/");
+  });
+
+  app.get("/api/logout", (req, res) => {
+    res.redirect("/");
+  });
+
   // Get all user's bot deployments
-  app.get("/api/bots", isAuthenticated, async (req: any, res) => {
+  app.get("/api/bots", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const bots = await Bot.find({ userId }).sort({ deployedAt: -1 });
+      const bots = await Bot.find({ userId: MOCK_USER_ID }).sort({ deployedAt: -1 });
       res.json(bots);
     } catch (error) {
       console.error("Error fetching bots:", error);
@@ -41,10 +58,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get single bot deployment
-  app.get("/api/bots/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/bots/:id", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const bot = await Bot.findOne({ _id: req.params.id, userId });
+      const bot = await Bot.findOne({ _id: req.params.id, userId: MOCK_USER_ID });
 
       if (!bot) {
         return res.status(404).json({ message: "Bot not found" });
@@ -58,15 +74,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new bot deployment
-  app.post("/api/bots", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bots", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-
       // Validate input
       const validatedData = botDeploymentSchema.parse(req.body);
 
       // Check if user has enough coins
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(MOCK_USER_ID);
       if (!user || user.coins < DEPLOYMENT_COST) {
         return res.status(400).json({ message: "Insufficient coins" });
       }
@@ -76,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create bot record in MongoDB
       const bot = new Bot({
-        userId,
+        userId: MOCK_USER_ID,
         herokuAppName: appName,
         ...validatedData,
         status: "deploying",
@@ -84,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await bot.save();
 
       // Deduct coins
-      const deducted = await storage.deductCoins(userId, DEPLOYMENT_COST);
+      const deducted = await storage.deductCoins(MOCK_USER_ID, DEPLOYMENT_COST);
       if (!deducted) {
         await Bot.findByIdAndDelete(bot._id);
         return res.status(400).json({ message: "Failed to deduct coins" });
@@ -104,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: "failed",
           });
           // Refund coins
-          await storage.updateUserCoins(userId, (user.coins || 10));
+          await storage.updateUserCoins(MOCK_USER_ID, (user.coins || 10));
         });
 
       res.status(201).json(bot);
@@ -118,10 +132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get bot logs
-  app.get("/api/bots/:id/logs", isAuthenticated, async (req: any, res) => {
+  app.get("/api/bots/:id/logs", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const bot = await Bot.findOne({ _id: req.params.id, userId });
+      const bot = await Bot.findOne({ _id: req.params.id, userId: MOCK_USER_ID });
 
       if (!bot) {
         return res.status(404).json({ message: "Bot not found" });
@@ -136,10 +149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Restart bot
-  app.post("/api/bots/:id/restart", isAuthenticated, async (req: any, res) => {
+  app.post("/api/bots/:id/restart", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const bot = await Bot.findOne({ _id: req.params.id, userId });
+      const bot = await Bot.findOne({ _id: req.params.id, userId: MOCK_USER_ID });
 
       if (!bot) {
         return res.status(404).json({ message: "Bot not found" });
@@ -154,10 +166,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete bot deployment
-  app.delete("/api/bots/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/bots/:id", async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const bot = await Bot.findOne({ _id: req.params.id, userId });
+      const bot = await Bot.findOne({ _id: req.params.id, userId: MOCK_USER_ID });
 
       if (!bot) {
         return res.status(404).json({ message: "Bot not found" });
