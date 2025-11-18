@@ -1,0 +1,92 @@
+
+{
+  "name": "Eclipse-MD WhatsApp Bot",
+  "description": "Deploy your Eclipse-MD WhatsApp bot instance",
+  "repository": "https://github.com/horlapookie/Eclipse-MD",
+  "logo": "https://raw.githubusercontent.com/horlapookie/Eclipse-MD/main/logo.png",
+  "keywords": ["whatsapp", "bot", "eclipse-md", "nodejs"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "env": {
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production",
+      "required": true
+    },
+    "BOT_PREFIX": {
+      "description": "Bot command prefix",
+      "value": ".",
+      "required": false
+    },
+    "BOT_NUMBER": {
+      "description": "WhatsApp bot number",
+      "required": true
+    },
+    "BOT_OWNER_NAME": {
+      "description": "Bot owner name",
+      "value": "Eclipse",
+      "required": false
+    },
+    "BOT_NAME": {
+      "description": "Bot display name",
+      "value": "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻",
+      "required": false
+    },
+    "BOT_SESSION_DATA": {
+      "description": "WhatsApp session pairing data",
+      "required": true
+    },
+    "OPENAI_API_KEY": {
+      "description": "OpenAI API key for AI features (optional)",
+      "required": false
+    },
+    "GEMINI_API_KEY": {
+      "description": "Google Gemini API key for AI features (optional)",
+      "required": false
+    },
+    "AUTO_VIEW_MESSAGE": {
+      "description": "Auto view messages",
+      "value": "false",
+      "required": false
+    },
+    "AUTO_VIEW_STATUS": {
+      "description": "Auto view status updates",
+      "value": "false",
+      "required": false
+    },
+    "AUTO_REACT_STATUS": {
+      "description": "Auto react to status updates",
+      "value": "false",
+      "required": false
+    },
+    "AUTO_REACT": {
+      "description": "Auto react to messages",
+      "value": "false",
+      "required": false
+    },
+    "AUTO_STATUS_EMOJI": {
+      "description": "Emoji for auto status reactions",
+      "value": "❤️",
+      "required": false
+    },
+    "AUTO_TYPING": {
+      "description": "Auto typing indicator",
+      "value": "false",
+      "required": false
+    },
+    "AUTO_RECORDING": {
+      "description": "Auto recording indicator",
+      "value": "false",
+      "required": false
+    }
+  }
+}
