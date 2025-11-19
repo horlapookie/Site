@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Terminal, Power, Trash2, RotateCw } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 interface Bot {
   _id: string;
@@ -11,6 +11,7 @@ interface Bot {
   botNumber: string;
   status: "running" | "stopped" | "deploying" | "failed";
   deployedAt: string;
+  expiresAt?: string;
 }
 
 interface BotCardProps {
@@ -51,6 +52,11 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) 
           <p className="text-xs text-muted-foreground mt-1">
             Deployed {formatDistanceToNow(new Date(bot.deployedAt), { addSuffix: true })}
           </p>
+          {bot.expiresAt && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Expires: {format(new Date(bot.expiresAt), 'MMM dd, yyyy HH:mm')}
+            </p>
+          )}
         </div>
       </div>
 

@@ -173,11 +173,11 @@ export function DeployForm({ onDeploy, isDeploying = false }: DeployFormProps) {
           <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
             <div>
               <p className="text-sm font-medium">Deployment Cost</p>
-              <p className="text-xs text-muted-foreground">One-time charge</p>
+              <p className="text-xs text-muted-foreground">Valid for 5 days, auto-renews if you have coins</p>
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold">10</p>
-              <p className="text-xs text-muted-foreground">coins</p>
+              <p className="text-xs text-muted-foreground">coins / 5 days</p>
             </div>
           </div>
 

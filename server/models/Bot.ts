@@ -18,6 +18,7 @@ export interface IBot extends Document {
   status: "running" | "stopped" | "deploying" | "failed";
   herokuAppId?: string;
   deployedAt: Date;
+  expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +45,7 @@ const BotSchema = new Schema<IBot>(
     },
     herokuAppId: { type: String },
     deployedAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, required: true },
   },
   {
     timestamps: true,

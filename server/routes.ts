@@ -347,12 +347,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate unique app name
       const appName = `eclipse-md-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`;
 
+      // Calculate expiration date (5 days from now)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 5);
+
       // Create bot record in MongoDB
       const bot = new Bot({
         userId,
         herokuAppName: appName,
         ...validatedData,
         status: "deploying",
+        expiresAt,
       });
       await bot.save();
 
