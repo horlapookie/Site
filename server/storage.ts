@@ -30,6 +30,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<any | undefined>;
   createUserWithPassword(userData: CreateUserWithPassword): Promise<any>;
   verifyPassword(email: string, password: string): Promise<any | null>;
+  transferCoins(fromUserId: string, toUserEmail: string, amount: number): Promise<{ success: boolean; message: string }>;
 }
 
 export class MongoStorage implements IStorage {
@@ -297,6 +298,40 @@ export class MongoStorage implements IStorage {
 
   async clearAllSessions(): Promise<void> {
     // No sessions to clear with JWT
+  }
+
+  async transferCoins(fromUserId: string, toUserEmail: string, amount: number): Promise<{ success: boolean; message: string }> {
+    if (amount <= 0) {
+      return { success: false, message: "Amount must be greater than 0" };
+    }
+
+    const fromUser = await this.getUser(fromUserId);
+    if (!fromUser) {
+      return { success: false, message: "Sender not found" };
+    }
+
+    if (fromUser.coins < amount) {
+      return { success: false, message: "Insufficient coins" };
+    }
+
+    const toUser = await this.getUserByEmail(toUserEmail);
+    if (!toUser) {
+      return { success: false, message: "Recipient email not found" };
+    }
+
+    if (fromUser.id === toUser.id) {
+      return { success: false, message: "Cannot transfer coins to yourself" };
+    }
+
+    await User.findByIdAndUpdate(fromUserId, {
+      $inc: { coins: -amount }
+    });
+
+    await User.findByIdAndUpdate(toUser.id, {
+      $inc: { coins: amount }
+    });
+
+    return { success: true, message: `Successfully transferred ${amount} coins to ${toUserEmail}` };
   }
 }
 
