@@ -81,13 +81,16 @@ export default function Dashboard() {
     setLocation("/deploy");
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     // Clear JWT token from localStorage
     localStorage.removeItem('auth_token');
-    // Clear React Query cache
+    // Invalidate and reset the auth query immediately
+    await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    await queryClient.resetQueries({ queryKey: ["/api/auth/user"] });
+    // Clear all cached data
     queryClient.clear();
-    // Redirect to login page
-    setLocation("/login");
+    // Force a hard redirect to login page
+    window.location.href = "/login";
   };
 
   const handleClaimCoins = () => {
