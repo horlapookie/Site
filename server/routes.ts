@@ -234,6 +234,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Transfer coins to another user
+  app.post("/api/coins/transfer", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { recipientEmail, amount } = req.body;
+
+      if (!recipientEmail || !amount) {
+        return res.status(400).json({ message: "Recipient email and amount are required" });
+      }
+
+      const parsedAmount = parseInt(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+
+      const result = await storage.transferCoins(userId, recipientEmail, parsedAmount);
+      
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+
+      const updatedUser = await storage.getUser(userId);
+      res.json({ 
+        message: result.message,
+        remainingCoins: updatedUser?.coins || 0 
+      });
+    } catch (error) {
+      console.error("Error transferring coins:", error);
+      res.status(500).json({ message: "Failed to transfer coins" });
+    }
+  });
+
   // Get all user's bot deployments
   app.get("/api/bots", requireAuth, async (req, res) => {
     try {
