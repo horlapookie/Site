@@ -273,7 +273,8 @@ export class MongoStorage implements IStorage {
     const claimData = this.claimCount.get(id)!;
     claimData.count += 1;
 
-    if (claimData.count === 1) {
+    // Only update lastCoinClaim when all 10 coins have been claimed
+    if (claimData.count === 10) {
       await User.findByIdAndUpdate(id, {
         coins: newCoins,
         lastCoinClaim: new Date(),
