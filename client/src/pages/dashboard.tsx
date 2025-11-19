@@ -130,6 +130,7 @@ export default function Dashboard() {
         coins={user?.coins ?? 0}
         username={user?.firstName ?? "User"}
         referralCode={user?.referralCode}
+        isAdmin={user?.isAdmin}
         onSignOut={handleSignOut}
         onClaimCoins={() => setShowClaimDialog(true)}
         onTransferCoins={() => setShowTransferDialog(true)}

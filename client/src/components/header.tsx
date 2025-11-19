@@ -1,4 +1,4 @@
-import { Coins, Moon, Sun, Copy, Check, Send, History } from "lucide-react";
+import { Coins, Moon, Sun, Copy, Check, Send, History, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "./theme-provider";
@@ -18,6 +18,7 @@ interface HeaderProps {
   coins?: number;
   username?: string;
   referralCode?: string;
+  isAdmin?: boolean;
   onSignOut?: () => void;
   onSignIn?: () => void;
   onClaimCoins?: () => void;
@@ -25,7 +26,7 @@ interface HeaderProps {
   onViewHistory?: () => void;
 }
 
-export function Header({ isAuthenticated = false, coins = 0, username = "User", referralCode, onSignOut, onSignIn, onClaimCoins, onTransferCoins, onViewHistory }: HeaderProps) {
+export function Header({ isAuthenticated = false, coins = 0, username = "User", referralCode, isAdmin = false, onSignOut, onSignIn, onClaimCoins, onTransferCoins, onViewHistory }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -74,7 +75,12 @@ export function Header({ isAuthenticated = false, coins = 0, username = "User", 
               <DropdownMenuContent className="w-56" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{username}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-medium leading-none">{username}</p>
+                      {isAdmin && (
+                        <BadgeCheck className="h-4 w-4 text-blue-500" title="Verified Admin" />
+                      )}
+                    </div>
                     <p className="text-xs leading-none text-muted-foreground">
                       {coins} coins available
                     </p>
