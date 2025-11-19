@@ -266,6 +266,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get transaction history
+  app.get("/api/transactions", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transaction history" });
+    }
+  });
+
   // Get all user's bot deployments
   app.get("/api/bots", requireAuth, async (req, res) => {
     try {

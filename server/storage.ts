@@ -1,4 +1,5 @@
 import User, { type IUser } from "./models/User";
+import Transaction from "./models/Transaction";
 import bcrypt from "bcryptjs";
 
 interface UpsertUser {
@@ -31,6 +32,7 @@ export interface IStorage {
   createUserWithPassword(userData: CreateUserWithPassword): Promise<any>;
   verifyPassword(email: string, password: string): Promise<any | null>;
   transferCoins(fromUserId: string, toUserEmail: string, amount: number): Promise<{ success: boolean; message: string }>;
+  getTransactions(userId: string, limit?: number): Promise<any[]>;
 }
 
 export class MongoStorage implements IStorage {
@@ -232,7 +234,18 @@ export class MongoStorage implements IStorage {
     if (!user || user.coins < amount) {
       return false;
     }
-    await this.updateUserCoins(id, user.coins - amount);
+    const newBalance = user.coins - amount;
+    await this.updateUserCoins(id, newBalance);
+    
+    // Record transaction
+    await Transaction.create({
+      userId: id,
+      type: "deduction",
+      amount: -amount,
+      description: `Deducted ${amount} coins for bot deployment`,
+      balanceAfter: newBalance,
+    });
+    
     return true;
   }
 
@@ -286,6 +299,15 @@ export class MongoStorage implements IStorage {
       });
     }
 
+    // Record transaction
+    await Transaction.create({
+      userId: id,
+      type: "claim",
+      amount: 1,
+      description: `Claimed 1 coin`,
+      balanceAfter: newCoins,
+    });
+
     const coinsRemaining = 10 - claimData.count;
 
     return { success: true, coinsRemaining, totalCoins: newCoins };
@@ -323,6 +345,9 @@ export class MongoStorage implements IStorage {
       return { success: false, message: "Cannot transfer coins to yourself" };
     }
 
+    const newFromBalance = fromUser.coins - amount;
+    const newToBalance = toUser.coins + amount;
+
     await User.findByIdAndUpdate(fromUserId, {
       $inc: { coins: -amount }
     });
@@ -331,7 +356,43 @@ export class MongoStorage implements IStorage {
       $inc: { coins: amount }
     });
 
+    // Record transactions for both users
+    await Transaction.create({
+      userId: fromUserId,
+      type: "transfer_sent",
+      amount: -amount,
+      description: `Transferred ${amount} coins to ${toUserEmail}`,
+      relatedEmail: toUserEmail,
+      balanceAfter: newFromBalance,
+    });
+
+    await Transaction.create({
+      userId: toUser.id,
+      type: "transfer_received",
+      amount: amount,
+      description: `Received ${amount} coins from ${fromUser.email}`,
+      relatedEmail: fromUser.email,
+      balanceAfter: newToBalance,
+    });
+
     return { success: true, message: `Successfully transferred ${amount} coins to ${toUserEmail}` };
+  }
+
+  async getTransactions(userId: string, limit: number = 50): Promise<any[]> {
+    const transactions = await Transaction.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    return transactions.map((t) => ({
+      id: t._id.toString(),
+      type: t.type,
+      amount: t.amount,
+      description: t.description,
+      relatedEmail: t.relatedEmail,
+      balanceAfter: t.balanceAfter,
+      createdAt: t.createdAt,
+    }));
   }
 }
 

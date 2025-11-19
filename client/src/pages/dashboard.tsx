@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { LogViewer } from "@/components/log-viewer";
 import { CoinClaimDialog } from "@/components/coin-claim-dialog";
+import { TransferCoinsDialog } from "@/components/transfer-coins-dialog";
+import { TransactionHistoryDialog } from "@/components/transaction-history-dialog";
+import { Footer } from "@/components/footer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +33,8 @@ export default function Dashboard() {
   const [selectedBotForLogs, setSelectedBotForLogs] = useState<string | null>(null);
   const [botToDelete, setBotToDelete] = useState<string | null>(null);
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -105,6 +110,10 @@ export default function Dashboard() {
     });
   };
 
+  const handleTransferComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+  };
+
   if (isLoading || isLoadingBots) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -122,12 +131,25 @@ export default function Dashboard() {
         referralCode={user?.referralCode}
         onSignOut={handleSignOut}
         onClaimCoins={() => setShowClaimDialog(true)}
+        onTransferCoins={() => setShowTransferDialog(true)}
+        onViewHistory={() => setShowHistoryDialog(true)}
       />
 
       <CoinClaimDialog
         open={showClaimDialog}
         onOpenChange={setShowClaimDialog}
         onClaimComplete={handleClaimComplete}
+      />
+
+      <TransferCoinsDialog
+        open={showTransferDialog}
+        onOpenChange={setShowTransferDialog}
+        onTransferComplete={handleTransferComplete}
+      />
+
+      <TransactionHistoryDialog
+        open={showHistoryDialog}
+        onOpenChange={setShowHistoryDialog}
       />
 
       <main className="container px-4 py-8 md:px-6">
@@ -160,6 +182,8 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      <Footer />
 
       {selectedBotForLogs && (
         <div className="fixed inset-0 z-50 bg-background/95 p-4 md:p-6">

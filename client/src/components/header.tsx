@@ -1,4 +1,4 @@
-import { Coins, Moon, Sun, Copy, Check } from "lucide-react";
+import { Coins, Moon, Sun, Copy, Check, Send, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "./theme-provider";
@@ -21,9 +21,11 @@ interface HeaderProps {
   onSignOut?: () => void;
   onSignIn?: () => void;
   onClaimCoins?: () => void;
+  onTransferCoins?: () => void;
+  onViewHistory?: () => void;
 }
 
-export function Header({ isAuthenticated = false, coins = 0, username = "User", referralCode, onSignOut, onSignIn, onClaimCoins }: HeaderProps) {
+export function Header({ isAuthenticated = false, coins = 0, username = "User", referralCode, onSignOut, onSignIn, onClaimCoins, onTransferCoins, onViewHistory }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -106,6 +108,14 @@ export function Header({ isAuthenticated = false, coins = 0, username = "User", 
                 <DropdownMenuItem onClick={onClaimCoins} data-testid="button-claim-coins">
                   <Coins className="mr-2 h-4 w-4" />
                   Claim Coins
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onTransferCoins} data-testid="button-transfer-coins">
+                  <Send className="mr-2 h-4 w-4" />
+                  Transfer Coins
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onViewHistory} data-testid="button-view-history">
+                  <History className="mr-2 h-4 w-4" />
+                  Transaction History
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setTheme(theme === "light" ? "dark" : "light")} data-testid="button-theme-toggle">
