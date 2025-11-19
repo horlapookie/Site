@@ -43,9 +43,11 @@ export function Header({ isAuthenticated = false, coins = 0, username = "User", 
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <span className="text-lg font-bold">E</span>
-          </div>
+          <img 
+            src="/eclipse-md-logo.jpg" 
+            alt="Eclipse-MD Logo" 
+            className="h-9 w-9 rounded-md object-cover"
+          />
           <span className="text-xl font-bold">Eclipse-MD</span>
         </div>
 
