@@ -51,39 +51,52 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
     }
   };
 
-  const claimOneCoin = async () => {
+  const startClaiming = async () => {
     if (claiming || claimedCoins >= TOTAL_COINS) return;
     
     setClaiming(true);
     
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch("/api/coins/claim", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-      });
+    // Claim all 10 coins with 3 second delay between each
+    for (let i = 0; i < TOTAL_COINS; i++) {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch("/api/coins/claim", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        setClaimedCoins(prev => prev + 1);
-        onClaimComplete();
-        
-        // Close dialog if all coins claimed
-        if (data.coinsRemaining === 0) {
-          setTimeout(() => {
-            onOpenChange(false);
-            setClaimedCoins(0);
-          }, 1000);
+        if (response.ok) {
+          const data = await response.json();
+          setClaimedCoins(prev => prev + 1);
+          onClaimComplete();
+          
+          // Close dialog if all coins claimed
+          if (data.coinsRemaining === 0) {
+            setTimeout(() => {
+              onOpenChange(false);
+              setClaimedCoins(0);
+              setClaiming(false);
+            }, 1000);
+            return;
+          }
+          
+          // Wait 3 seconds before claiming next coin
+          if (i < TOTAL_COINS - 1) {
+            await new Promise(resolve => setTimeout(resolve, CLAIM_DELAY));
+          }
+        } else {
+          break;
         }
+      } catch (error) {
+        console.error("Error claiming coin:", error);
+        break;
       }
-    } catch (error) {
-      console.error("Error claiming coin:", error);
-    } finally {
-      setClaiming(false);
     }
+    
+    setClaiming(false);
   };
 
   return (
@@ -133,13 +146,13 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
               <p className="text-sm text-muted-foreground">Coins remaining</p>
             </div>
             <Button 
-              onClick={claimOneCoin} 
+              onClick={startClaiming} 
               className="w-full" 
               size="lg"
               disabled={claiming || claimedCoins >= TOTAL_COINS}
             >
               <Coins className="mr-2 h-4 w-4" />
-              {claiming ? "Claiming..." : "Claim 1 Coin"}
+              {claiming ? "Claiming..." : "Start Claiming Coins"}
             </Button>
           </div>
         )}

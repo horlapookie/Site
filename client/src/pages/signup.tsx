@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -19,6 +20,9 @@ const signupSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   referralCode: z.string().optional(),
+  acceptPrivacy: z.boolean().refine((val) => val === true, {
+    message: "You must accept the Privacy Policy to continue",
+  }),
 });
 
 type SignupFormValues = z.infer<typeof signupSchema>;
@@ -35,6 +39,7 @@ export default function Signup() {
       firstName: "",
       lastName: "",
       referralCode: "",
+      acceptPrivacy: false,
     },
   });
 
@@ -80,7 +85,7 @@ export default function Signup() {
 
       toast({
         title: "Account Created!",
-        description: `Welcome! You've received ${isValidReferralCode ? "15" : "10"} coins to get started.`,
+        description: `Welcome! You've received ${isValidReferralCode ? "3" : "0"} coins to get started.`,
       });
 
       setLocation("/dashboard");
@@ -267,10 +272,40 @@ export default function Signup() {
                     </div>
                   </div>
 
+                  <FormField
+                    control={form.control}
+                    name="acceptPrivacy"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="checkbox-privacy"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm font-normal">
+                            I have read and accept the{" "}
+                            <a
+                              href="/privacy"
+                              target="_blank"
+                              className="text-primary hover:underline"
+                              data-testid="link-privacy"
+                            >
+                              Privacy Policy
+                            </a>
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
                   <Button 
                     type="submit"
                     className="w-full"
-                    disabled={form.formState.isSubmitting || isInvalidReferralCode}
+                    disabled={form.formState.isSubmitting || isInvalidReferralCode || !form.watch("acceptPrivacy")}
                     data-testid="button-signup"
                   >
                     {form.formState.isSubmitting ? "Creating Account..." : "Create Account & Get Coins"}
