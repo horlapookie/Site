@@ -86,8 +86,8 @@ export default function Dashboard() {
     localStorage.removeItem('auth_token');
     // Clear React Query cache
     queryClient.clear();
-    // Redirect to home page
-    setLocation("/");
+    // Redirect to login page
+    setLocation("/login");
   };
 
   const handleClaimCoins = () => {
