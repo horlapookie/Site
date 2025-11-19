@@ -11,6 +11,14 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
       <div className="container relative px-4 py-16 md:px-6 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
+          <div className="mb-8 flex justify-center">
+            <img 
+              src="/eclipse-md-logo.jpg" 
+              alt="Eclipse-MD Logo" 
+              className="h-32 w-32 rounded-2xl object-cover shadow-lg md:h-40 md:w-40"
+            />
+          </div>
+          
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-muted px-4 py-1.5 text-sm">
             <Zap className="h-4 w-4" />
             <span>Get 10 free coins on signup</span>
