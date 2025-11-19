@@ -89,6 +89,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referredByCode: referralCode,
       });
 
+      console.log(`User created successfully: ${email}, has password: ${!!user.password}`);
+
       // Generate JWT token
       const token = generateToken(user.id);
 
@@ -112,9 +114,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
+      // Check if user exists first
+      const existingUser = await storage.getUserByEmail(email);
+      if (!existingUser) {
+        console.log(`Login failed: User not found for email ${email}`);
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
       // Verify credentials
       const user = await storage.verifyPassword(email, password);
       if (!user) {
+        console.log(`Login failed: Password verification failed for email ${email}`);
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
