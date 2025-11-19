@@ -53,8 +53,11 @@ export async function setupVite(app: Express, server: Server) {
       );
 
       // Determine the origin from the request (supports Render, Replit, and other platforms)
-      const protocol = req.headers['x-forwarded-proto'] as string || req.protocol || 'http';
-      const host = req.headers['x-forwarded-host'] as string || req.get('host') || 'localhost:5000';
+      // Handle comma-separated values from multiple proxies by taking the first value
+      const forwardedProto = req.headers['x-forwarded-proto'] as string;
+      const protocol = forwardedProto ? forwardedProto.split(',')[0].trim() : (req.protocol || 'http');
+      const forwardedHost = req.headers['x-forwarded-host'] as string;
+      const host = forwardedHost ? forwardedHost.split(',')[0].trim() : (req.get('host') || 'localhost:5000');
       const origin = `${protocol}://${host}`;
 
       // always reload the index.html file from disk incase it changes
@@ -94,8 +97,11 @@ export function serveStatic(app: Express) {
   // fall through to index.html if the file doesn't exist
   app.use("*", (req, res) => {
     // Determine the origin from the request (supports Render, Replit, and other platforms)
-    const protocol = req.headers['x-forwarded-proto'] as string || req.protocol || 'http';
-    const host = req.headers['x-forwarded-host'] as string || req.get('host') || 'localhost:5000';
+    // Handle comma-separated values from multiple proxies by taking the first value
+    const forwardedProto = req.headers['x-forwarded-proto'] as string;
+    const protocol = forwardedProto ? forwardedProto.split(',')[0].trim() : (req.protocol || 'http');
+    const forwardedHost = req.headers['x-forwarded-host'] as string;
+    const host = forwardedHost ? forwardedHost.split(',')[0].trim() : (req.get('host') || 'localhost:5000');
     const origin = `${protocol}://${host}`;
 
     // Load template once and cache it
