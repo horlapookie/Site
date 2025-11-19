@@ -112,6 +112,7 @@ export default function Dashboard() {
 
   const handleTransferComplete = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
   };
 
   if (isLoading || isLoadingBots) {
