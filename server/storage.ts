@@ -33,6 +33,7 @@ export interface IStorage {
   verifyPassword(email: string, password: string): Promise<any | null>;
   transferCoins(fromUserId: string, toUserEmail: string, amount: number): Promise<{ success: boolean; message: string }>;
   getTransactions(userId: string, limit?: number): Promise<any[]>;
+  updateUserProfile(id: string, updates: { firstName?: string; lastName?: string }): Promise<any | undefined>;
 }
 
 export class MongoStorage implements IStorage {
@@ -54,6 +55,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -75,6 +77,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -96,6 +99,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -161,6 +165,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -210,6 +215,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -393,6 +399,33 @@ export class MongoStorage implements IStorage {
       balanceAfter: t.balanceAfter,
       createdAt: t.createdAt,
     }));
+  }
+
+  async updateUserProfile(id: string, updates: { firstName?: string; lastName?: string }): Promise<any | undefined> {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true }
+    ).lean();
+
+    if (!user) return undefined;
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      isAdmin: user.isAdmin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 }
 
