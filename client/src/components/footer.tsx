@@ -8,7 +8,7 @@ export function Footer() {
         <div className="flex flex-col items-center justify-center gap-4 md:flex-row md:justify-between">
           <div className="text-center md:text-left">
             <p className="text-sm text-muted-foreground">
-              © 2024 Eclipse-MD. All rights reserved.
+              © 2025-2026 Eclipse-MD. All rights reserved.
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
