@@ -238,7 +238,7 @@ export default function Signup() {
                         </FormControl>
                         {isValidReferralCode && (
                           <p className="text-sm text-green-600" data-testid="text-referral-valid">
-                            Valid referral code! You'll get 15 coins instead of 10
+                            Valid referral code! You'll get 3 bonus coins
                           </p>
                         )}
                         {isInvalidReferralCode && (
@@ -256,12 +256,12 @@ export default function Signup() {
                       <Gift className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-sm font-medium" data-testid="text-coins-bonus">
-                          {isValidReferralCode ? "15 Free Coins" : "10 Free Coins"}
+                          {isValidReferralCode ? "3 Free Coins" : "0 Free Coins"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {isValidReferralCode 
                             ? "Bonus for using a referral code!" 
-                            : "Perfect for your first deployment"}
+                            : "Use referral code to get bonus coins"}
                         </p>
                       </div>
                     </div>

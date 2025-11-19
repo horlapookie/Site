@@ -120,7 +120,7 @@ export class MongoStorage implements IStorage {
       const referrer = await this.getUserByReferralCode(userData.referredByCode);
       if (referrer) {
         referredBy = referrer.id;
-        bonusCoins = 0;
+        bonusCoins = 3;
 
         await User.findByIdAndUpdate(referrer.id, {
           $inc: { coins: 5, referralCount: 1 },
@@ -172,7 +172,7 @@ export class MongoStorage implements IStorage {
       const referrer = await this.getUserByReferralCode(userData.referredByCode);
       if (referrer) {
         referredBy = referrer.id;
-        bonusCoins = 0;
+        bonusCoins = 3;
 
         await User.findByIdAndUpdate(referrer.id, {
           $inc: { coins: 5, referralCount: 1 },
