@@ -17,9 +17,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const getUserId = (req: any): string | null => {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(" ")[1];
-    
+
     if (!token) return null;
-    
+
     const decoded = verifyToken(token);
     return decoded ? decoded.userId : null;
   };
@@ -40,8 +40,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return userWithoutPassword;
   };
 
+  // Update user profile
+  app.patch("/api/auth/user/profile", requireAuth, async (req, res) => {
+    try {
+      const { firstName, lastName } = req.body;
+      const userId = req.userId!;
+
+      const updatedUser = await storage.updateUserProfile(userId, {
+        firstName: firstName?.trim() || undefined,
+        lastName: lastName?.trim() || undefined
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(sanitizeUser(updatedUser));
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Auth routes - return user only if authenticated
-  app.get("/api/auth/user", async (req, res) => {
+  app.get("/api/auth/user", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       if (!userId) {
@@ -250,15 +272,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await storage.transferCoins(userId, recipientEmail, parsedAmount);
-      
+
       if (!result.success) {
         return res.status(400).json({ message: result.message });
       }
 
       const updatedUser = await storage.getUser(userId);
-      res.json({ 
+      res.json({
         message: result.message,
-        remainingCoins: updatedUser?.coins || 0 
+        remainingCoins: updatedUser?.coins || 0
       });
     } catch (error) {
       console.error("Error transferring coins:", error);

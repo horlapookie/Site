@@ -14,6 +14,7 @@ import { LogViewer } from "@/components/log-viewer";
 import { CoinClaimDialog } from "@/components/coin-claim-dialog";
 import { TransferCoinsDialog } from "@/components/transfer-coins-dialog";
 import { TransactionHistoryDialog } from "@/components/transaction-history-dialog";
+import { AccountSettingsDialog } from "@/components/account-settings-dialog";
 import { Footer } from "@/components/footer";
 import {
   AlertDialog,
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [showClaimDialog, setShowClaimDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -135,6 +137,7 @@ export default function Dashboard() {
         onClaimCoins={() => setShowClaimDialog(true)}
         onTransferCoins={() => setShowTransferDialog(true)}
         onViewHistory={() => setShowHistoryDialog(true)}
+        onSettings={() => setShowSettingsDialog(true)}
       />
 
       <CoinClaimDialog
@@ -152,6 +155,14 @@ export default function Dashboard() {
       <TransactionHistoryDialog
         open={showHistoryDialog}
         onOpenChange={setShowHistoryDialog}
+      />
+
+      <AccountSettingsDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        currentFirstName={user?.firstName}
+        currentLastName={user?.lastName}
+        isAdmin={user?.isAdmin}
       />
 
       <main className="container px-4 py-8 md:px-6">
