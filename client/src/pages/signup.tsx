@@ -1,102 +1,95 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { Gift, Mail, Lock, User } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
+import { Gift, Mail, Lock, User, CheckCircle, XCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 
+const signupSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  referralCode: z.string().optional(),
+});
+
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function Signup() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [referralCode, setReferralCode] = useState("");
-  const [isValidating, setIsValidating] = useState(false);
-  const [isValid, setIsValid] = useState<boolean | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      referralCode: "",
+    },
+  });
+
+  const referralCode = form.watch("referralCode");
 
   // Auto-populate referral code from URL parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
     if (refCode) {
-      const code = refCode.toUpperCase();
-      setReferralCode(code);
-      validateReferralCode(code);
+      form.setValue("referralCode", refCode.toUpperCase());
     }
-  }, []);
+  }, [form]);
 
-  const validateReferralCode = async (code: string) => {
-    if (!code) {
-      setIsValid(null);
-      return;
-    }
+  // Validate referral code
+  const hasReferral = !!referralCode?.trim();
+  const { data: referralValidation, isLoading: isValidating } = useQuery<{ valid: boolean }>({
+    queryKey: ['/api/referral/validate', referralCode],
+    queryFn: async () => {
+      return await apiRequest("GET", `/api/referral/validate/${referralCode}`);
+    },
+    enabled: hasReferral,
+  });
 
-    setIsValidating(true);
+  const isValidReferralCode = hasReferral && referralValidation?.valid === true;
+  const isInvalidReferralCode = hasReferral && referralValidation?.valid === false;
+
+  const onSubmit = async (values: SignupFormValues) => {
     try {
-      const response = await apiRequest("GET", `/api/referral/validate/${code}`);
-      setIsValid(response.valid);
-    } catch (error) {
-      setIsValid(false);
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const handleSignup = async () => {
-    if (!email || !password) {
-      toast({
-        title: "Error",
-        description: "Email and password are required",
-        variant: "destructive",
+      const response = await apiRequest("POST", "/api/auth/register", {
+        email: values.email,
+        password: values.password,
+        firstName: values.firstName || undefined,
+        lastName: values.lastName || undefined,
+        referralCode: values.referralCode || undefined,
       });
-      return;
-    }
 
-    if (password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
+      // Store the JWT token
+      setToken(response.token);
 
-    setIsSubmitting(true);
-    try {
-      await apiRequest("POST", "/api/auth/register", {
-        email,
-        password,
-        firstName: firstName || undefined,
-        lastName: lastName || undefined,
-        referralCode: referralCode || undefined,
-      });
+      // Invalidate the auth query to refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 
       toast({
         title: "Account Created!",
-        description: `Welcome! You've received ${referralCode && isValid ? "15" : "10"} coins to get started.`,
+        description: `Welcome! You've received ${isValidReferralCode ? "15" : "10"} coins to get started.`,
       });
 
-      // Force full page reload to ensure cookie is set
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 100);
+      setLocation("/dashboard");
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to complete signup. Please try again.",
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -113,135 +106,184 @@ export default function Signup() {
               </div>
               <CardTitle className="text-2xl">Create Your Account</CardTitle>
               <CardDescription>
-                Sign up with your email and get free coins to deploy your first bot
+                Sign up and get free coins to deploy your first bot
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9"
-                    required
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="your@email.com"
+                              className="pl-9"
+                              data-testid="input-email"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="At least 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9"
-                    required
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              type="password"
+                              placeholder="At least 6 characters"
+                              className="pl-9"
+                              data-testid="input-password"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name (Optional)</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="firstName"
-                      type="text"
-                      placeholder="John"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="pl-9"
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name (Optional)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                {...field}
+                                type="text"
+                                placeholder="John"
+                                className="pl-9"
+                                data-testid="input-firstname"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name (Optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="text"
+                              placeholder="Doe"
+                              data-testid="input-lastname"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name (Optional)</Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="Doe"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
+                  <FormField
+                    control={form.control}
+                    name="referralCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Referral Code (Optional)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              placeholder="Enter referral code"
+                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              className={
+                                isInvalidReferralCode
+                                  ? "border-destructive pr-10"
+                                  : isValidReferralCode
+                                  ? "border-green-500 pr-10"
+                                  : ""
+                              }
+                              data-testid="input-referralcode"
+                            />
+                            {isValidating && referralCode && (
+                              <div className="absolute right-3 top-3">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              </div>
+                            )}
+                            {!isValidating && isValidReferralCode && (
+                              <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+                            )}
+                            {!isValidating && isInvalidReferralCode && (
+                              <XCircle className="absolute right-3 top-3 h-4 w-4 text-destructive" />
+                            )}
+                          </div>
+                        </FormControl>
+                        {isValidReferralCode && (
+                          <p className="text-sm text-green-600" data-testid="text-referral-valid">
+                            Valid referral code! You'll get 15 coins instead of 10
+                          </p>
+                        )}
+                        {isInvalidReferralCode && (
+                          <p className="text-sm text-destructive" data-testid="text-referral-invalid">
+                            Invalid referral code
+                          </p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="referral-code">
-                  Referral Code (Optional)
-                </Label>
-                <Input
-                  id="referral-code"
-                  placeholder="Enter referral code"
-                  value={referralCode}
-                  onChange={(e) => {
-                    const code = e.target.value.toUpperCase();
-                    setReferralCode(code);
-                    validateReferralCode(code);
-                  }}
-                  className={
-                    referralCode && isValid === false
-                      ? "border-destructive"
-                      : referralCode && isValid === true
-                      ? "border-green-500"
-                      : ""
-                  }
-                />
-                {isValidating && (
-                  <p className="text-sm text-muted-foreground">Validating...</p>
-                )}
-                {referralCode && isValid === true && (
-                  <p className="text-sm text-green-600">
-                    ✓ Valid referral code! You'll get 15 coins instead of 10
-                  </p>
-                )}
-                {referralCode && isValid === false && (
-                  <p className="text-sm text-destructive">
-                    ✗ Invalid referral code
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {referralCode && isValid ? "15 Free Coins" : "10 Free Coins"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {referralCode && isValid 
-                        ? "Bonus for using a referral code!" 
-                        : "Perfect for your first deployment"}
-                    </p>
+                  <div className="rounded-md border bg-muted/50 p-4">
+                    <div className="flex items-center gap-2">
+                      <Gift className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="text-sm font-medium" data-testid="text-coins-bonus">
+                          {isValidReferralCode ? "15 Free Coins" : "10 Free Coins"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isValidReferralCode 
+                            ? "Bonus for using a referral code!" 
+                            : "Perfect for your first deployment"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <Button 
-                onClick={handleSignup} 
-                className="w-full"
-                disabled={isSubmitting || (referralCode ? isValid !== true : false)}
-              >
-                {isSubmitting ? "Creating Account..." : "Create Account & Get Coins"}
-              </Button>
+                  <Button 
+                    type="submit"
+                    className="w-full"
+                    disabled={form.formState.isSubmitting || isInvalidReferralCode}
+                    data-testid="button-signup"
+                  >
+                    {form.formState.isSubmitting ? "Creating Account..." : "Create Account & Get Coins"}
+                  </Button>
+                </form>
+              </Form>
 
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <button
                   onClick={() => setLocation("/login")}
                   className="text-primary hover:underline"
+                  data-testid="link-login"
                 >
                   Log in
                 </button>

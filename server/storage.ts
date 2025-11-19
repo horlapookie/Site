@@ -1,7 +1,4 @@
-import { users, type User, type UpsertUser } from "@shared/schema";
-import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
-import { sessions } from "@shared/schema";
+import User, { type IUser } from "./models/User";
 import bcrypt from "bcryptjs";
 
 interface UpsertUser {
@@ -22,33 +19,83 @@ interface CreateUserWithPassword {
 }
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUser(id: string): Promise<any | undefined>;
+  upsertUser(user: UpsertUser): Promise<any>;
   updateUserCoins(id: string, coins: number): Promise<void>;
   deductCoins(id: string, amount: number): Promise<boolean>;
   canClaimCoins(id: string): Promise<boolean>;
   claimCoin(id: string): Promise<{ success: boolean; coinsRemaining: number; totalCoins: number }>;
   deleteAllUsers(): Promise<void>;
   clearAllSessions(): Promise<void>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUserWithPassword(userData: CreateUserWithPassword): Promise<User>;
-  verifyPassword(email: string, password: string): Promise<User | null>;
+  getUserByEmail(email: string): Promise<any | undefined>;
+  createUserWithPassword(userData: CreateUserWithPassword): Promise<any>;
+  verifyPassword(email: string, password: string): Promise<any | null>;
 }
 
-export class DatabaseStorage implements IStorage {
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+export class MongoStorage implements IStorage {
+  private claimCount = new Map<string, { date: string; count: number }>();
+
+  async getUser(id: string): Promise<any | undefined> {
+    const user = await User.findById(id).lean();
+    if (!user) return undefined;
+    
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.referralCode, referralCode));
-    return user;
+  async getUserByReferralCode(referralCode: string): Promise<any | undefined> {
+    const user = await User.findOne({ referralCode }).lean();
+    if (!user) return undefined;
+    
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+  async getUserByEmail(email: string): Promise<any | undefined> {
+    const user = await User.findOne({ email }).lean();
+    if (!user) return undefined;
+    
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async generateUniqueReferralCode(): Promise<string> {
@@ -64,99 +111,108 @@ export class DatabaseStorage implements IStorage {
     return code!;
   }
 
-  async upsertUser(userData: UpsertUser & { referredByCode?: string }): Promise<User> {
+  async upsertUser(userData: UpsertUser & { referredByCode?: string }): Promise<any> {
     const referralCode = await this.generateUniqueReferralCode();
     let referredBy: string | null = null;
     let bonusCoins = 10;
 
-    // Check if user was referred
     if (userData.referredByCode) {
       const referrer = await this.getUserByReferralCode(userData.referredByCode);
       if (referrer) {
         referredBy = referrer.id;
-        bonusCoins = 3; // Bonus coins for being referred
+        bonusCoins = 3;
 
-        // Give referrer bonus coins
-        await db
-          .update(users)
-          .set({
-            coins: sql`${users.coins} + 5`,
-            referralCount: sql`${users.referralCount} + 1`,
-          })
-          .where(eq(users.id, referrer.id));
+        await User.findByIdAndUpdate(referrer.id, {
+          $inc: { coins: 5, referralCount: 1 },
+        });
       }
     }
 
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...userData,
-        referralCode,
-        referredBy,
-        coins: bonusCoins,
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
+    const user = await User.findOneAndUpdate(
+      { email: userData.email },
+      {
+        $setOnInsert: {
+          referralCode,
+          referredBy,
+          coins: bonusCoins,
+        },
+        $set: {
           email: userData.email,
           firstName: userData.firstName,
           lastName: userData.lastName,
           profileImageUrl: userData.profileImageUrl,
-          updatedAt: new Date(),
         },
-      })
-      .returning();
-    return user;
+      },
+      { upsert: true, new: true }
+    ).lean();
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  async createUserWithPassword(userData: CreateUserWithPassword): Promise<User> {
+  async createUserWithPassword(userData: CreateUserWithPassword): Promise<any> {
     const referralCode = await this.generateUniqueReferralCode();
     let referredBy: string | null = null;
     let bonusCoins = 10;
 
-    // Check if user was referred
     if (userData.referredByCode) {
       const referrer = await this.getUserByReferralCode(userData.referredByCode);
       if (referrer) {
         referredBy = referrer.id;
-        bonusCoins = 3; // Bonus coins for being referred
+        bonusCoins = 3;
 
-        // Give referrer bonus coins
-        await db
-          .update(users)
-          .set({
-            coins: sql`${users.coins} + 5`,
-            referralCount: sql`${users.referralCount} + 1`,
-          })
-          .where(eq(users.id, referrer.id));
+        await User.findByIdAndUpdate(referrer.id, {
+          $inc: { coins: 5, referralCount: 1 },
+        });
       }
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-    // Generate unique user ID based on email
-    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newUser = await User.create({
+      email: userData.email,
+      password: hashedPassword,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: null,
+      referralCode,
+      referredBy,
+      coins: bonusCoins,
+    });
 
-    const [user] = await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: userData.email,
-        password: hashedPassword,
-        firstName: userData.firstName || null,
-        lastName: userData.lastName || null,
-        profileImageUrl: null,
-        referralCode,
-        referredBy,
-        coins: bonusCoins,
-      })
-      .returning();
-
-    return user;
+    const user = newUser.toObject();
+    
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  async verifyPassword(email: string, password: string): Promise<User | null> {
+  async verifyPassword(email: string, password: string): Promise<any | null> {
     const user = await this.getUserByEmail(email);
     if (!user || !user.password) {
       return null;
@@ -166,9 +222,8 @@ export class DatabaseStorage implements IStorage {
     return isValid ? user : null;
   }
 
-
   async updateUserCoins(id: string, coins: number): Promise<void> {
-    await db.update(users).set({ coins }).where(eq(users.id, id));
+    await User.findByIdAndUpdate(id, { coins });
   }
 
   async deductCoins(id: string, amount: number): Promise<boolean> {
@@ -189,12 +244,9 @@ export class DatabaseStorage implements IStorage {
 
     if (!lastClaim) return true;
 
-    // Check if 24 hours have passed since the FIRST claim of the day
     const hoursSinceLastClaim = (now.getTime() - new Date(lastClaim).getTime()) / (1000 * 60 * 60);
     return hoursSinceLastClaim >= 24;
   }
-
-  private claimCount = new Map<string, { date: string; count: number }>();
 
   async claimCoin(id: string): Promise<{ success: boolean; coinsRemaining: number; totalCoins: number }> {
     const user = await this.getUser(id);
@@ -205,39 +257,31 @@ export class DatabaseStorage implements IStorage {
     const today = new Date().toDateString();
     const userClaim = this.claimCount.get(id);
 
-    // Check if user already started claiming today
     if (userClaim && userClaim.date === today) {
-      // User is continuing to claim coins today
       if (userClaim.count >= 10) {
         return { success: false, coinsRemaining: 0, totalCoins: user.coins };
       }
     } else {
-      // New day or first time claiming
       const canClaim = await this.canClaimCoins(id);
       if (!canClaim) {
         return { success: false, coinsRemaining: 0, totalCoins: user.coins };
       }
-      // Reset count for new day
       this.claimCount.set(id, { date: today, count: 0 });
     }
 
-    // Add 1 coin
     const newCoins = user.coins + 1;
     const claimData = this.claimCount.get(id)!;
     claimData.count += 1;
 
-    // Only update lastCoinClaim on the FIRST coin of the day
     if (claimData.count === 1) {
-      await db.update(users).set({
+      await User.findByIdAndUpdate(id, {
         coins: newCoins,
         lastCoinClaim: new Date(),
-        updatedAt: new Date()
-      }).where(eq(users.id, id));
+      });
     } else {
-      await db.update(users).set({
+      await User.findByIdAndUpdate(id, {
         coins: newCoins,
-        updatedAt: new Date()
-      }).where(eq(users.id, id));
+      });
     }
 
     const coinsRemaining = 10 - claimData.count;
@@ -246,13 +290,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAllUsers(): Promise<void> {
-    await db.delete(users);
+    await User.deleteMany({});
     this.claimCount.clear();
   }
 
   async clearAllSessions(): Promise<void> {
-    await db.delete(sessions);
+    // No sessions to clear with JWT
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MongoStorage();

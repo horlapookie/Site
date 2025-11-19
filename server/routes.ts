@@ -5,6 +5,7 @@ import { connectDB } from "./mongodb";
 import Bot from "./models/Bot";
 import { botDeploymentSchema, type User } from "@shared/schema";
 import { createHerokuApp, getAppLogs, restartApp, deleteApp } from "./herokuService";
+import { generateToken, verifyToken, getUserId as getAuthUserId } from "./auth";
 
 const DEPLOYMENT_COST = 10; // coins per deployment
 
@@ -12,10 +13,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Connect to MongoDB for bot deployments
   await connectDB();
 
-  // Helper to get authenticated user ID from session
+  // Helper to get authenticated user ID from JWT token
   const getUserId = (req: any): string | null => {
-    const session = req.session as any;
-    return session?.userId || null;
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(" ")[1];
+    
+    if (!token) return null;
+    
+    const decoded = verifyToken(token);
+    return decoded ? decoded.userId : null;
   };
 
   // Middleware to require authentication
@@ -24,6 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+    req.userId = userId;
     next();
   };
 
@@ -36,22 +43,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes - return user only if authenticated
   app.get("/api/auth/user", async (req, res) => {
     try {
-      // Debug session
-      console.log("Session check - Session ID:", req.sessionID);
-      console.log("Session data:", req.session);
-      
-      // Check if user is authenticated (has a session)
       const userId = getUserId(req);
       if (!userId) {
-        console.log("No userId found in session");
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      // Get user from database - don't create if doesn't exist
       const user = await storage.getUser(userId);
       if (!user) {
-        // Session exists but user was deleted - destroy session
-        req.session.destroy(() => {});
         return res.status(401).json({ message: "User not found" });
       }
 
@@ -91,18 +89,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referredByCode: referralCode,
       });
 
-      // Set session and ensure it's saved before responding
-      req.session.userId = user.id;
+      // Generate JWT token
+      const token = generateToken(user.id);
 
-      // Save session explicitly
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          res.status(500).json({ message: 'Failed to save session' });
-          return;
-        }
-
-        res.status(201).json(sanitizeUser(user));
+      res.status(201).json({
+        user: sanitizeUser(user),
+        token,
       });
     } catch (error) {
       console.error("Error registering user:", error);
@@ -126,21 +118,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      // Set session and ensure it's saved before responding
-      req.session.userId = user.id;
+      // Generate JWT token
+      const token = generateToken(user.id);
 
-      // Save session explicitly
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          res.status(500).json({ message: 'Failed to save session' });
-          return;
-        }
-
-        console.log("Login successful - Session ID:", req.sessionID);
-        console.log("Session data after save:", req.session);
-        console.log("Cookie being sent:", res.getHeader('Set-Cookie'));
-        res.json(sanitizeUser(user));
+      res.json({
+        user: sanitizeUser(user),
+        token,
       });
     } catch (error) {
       console.error("Error logging in:", error);
