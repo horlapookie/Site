@@ -51,7 +51,12 @@ export default function Deploy() {
   });
 
   const handleSignOut = () => {
-    window.location.href = "/api/logout";
+    // Clear JWT token from localStorage
+    localStorage.removeItem('auth_token');
+    // Clear React Query cache
+    queryClient.clear();
+    // Redirect to home page
+    setLocation("/");
   };
 
   const handleClaimCoins = () => {

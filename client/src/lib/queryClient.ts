@@ -13,6 +13,10 @@ export function removeToken(): void {
   localStorage.removeItem("auth_token");
 }
 
+export function clearToken() {
+  localStorage.removeItem('auth_token');
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -45,13 +49,13 @@ export async function apiRequest(
 
   const response = await fetch(url, options);
   await throwIfResNotOk(response);
-  
+
   // Handle JSON response
   const contentType = response.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     return await response.json();
   }
-  
+
   return response;
 }
 

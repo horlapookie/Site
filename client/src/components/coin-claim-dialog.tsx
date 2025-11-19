@@ -35,7 +35,12 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
   const checkClaimEligibility = async () => {
     setChecking(true);
     try {
-      const response = await fetch("/api/coins/can-claim");
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch("/api/coins/can-claim", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       setCanClaim(data.canClaim);
     } catch (error) {
@@ -52,9 +57,13 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
     setClaiming(true);
     
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch("/api/coins/claim", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
       });
 
       if (response.ok) {
