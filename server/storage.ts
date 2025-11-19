@@ -114,13 +114,13 @@ export class MongoStorage implements IStorage {
   async upsertUser(userData: UpsertUser & { referredByCode?: string }): Promise<any> {
     const referralCode = await this.generateUniqueReferralCode();
     let referredBy: string | null = null;
-    let bonusCoins = 10;
+    let bonusCoins = 0;
 
     if (userData.referredByCode) {
       const referrer = await this.getUserByReferralCode(userData.referredByCode);
       if (referrer) {
         referredBy = referrer.id;
-        bonusCoins = 3;
+        bonusCoins = 0;
 
         await User.findByIdAndUpdate(referrer.id, {
           $inc: { coins: 5, referralCount: 1 },
@@ -166,13 +166,13 @@ export class MongoStorage implements IStorage {
   async createUserWithPassword(userData: CreateUserWithPassword): Promise<any> {
     const referralCode = await this.generateUniqueReferralCode();
     let referredBy: string | null = null;
-    let bonusCoins = 10;
+    let bonusCoins = 0;
 
     if (userData.referredByCode) {
       const referrer = await this.getUserByReferralCode(userData.referredByCode);
       if (referrer) {
         referredBy = referrer.id;
-        bonusCoins = 3;
+        bonusCoins = 0;
 
         await User.findByIdAndUpdate(referrer.id, {
           $inc: { coins: 5, referralCount: 1 },

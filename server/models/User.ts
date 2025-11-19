@@ -22,7 +22,7 @@ const UserSchema = new Schema<IUser>(
     firstName: { type: String },
     lastName: { type: String },
     profileImageUrl: { type: String },
-    coins: { type: Number, default: 10, required: true },
+    coins: { type: Number, default: 0, required: true },
     lastCoinClaim: { type: Date },
     referralCode: { type: String, unique: true, required: true },
     referredBy: { type: String },
