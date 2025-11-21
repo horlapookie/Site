@@ -8,6 +8,7 @@ const RENEWAL_DAYS = 5;
 
 /**
  * Check for expired bots and delete them if user doesn't have enough coins
+ * Also checks for failed bots older than 5 days and deletes them
  */
 export async function checkExpiredBots() {
   try {
@@ -65,8 +66,39 @@ export async function checkExpiredBots() {
         // Continue processing other bots even if one fails
       }
     }
+
+    // Delete failed bots older than 5 days
+    await cleanupOldFailedBots();
   } catch (error: any) {
     console.error("Error in bot expiration checker:", error.message || error);
+  }
+}
+
+/**
+ * Delete failed bots that are older than 5 days
+ */
+async function cleanupOldFailedBots() {
+  try {
+    const fiveDaysAgo = new Date();
+    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
+    const oldFailedBots = await Bot.find({
+      status: "failed",
+      updatedAt: { $lte: fiveDaysAgo }
+    });
+
+    console.log(`Found ${oldFailedBots.length} failed bots older than 5 days to delete`);
+
+    for (const bot of oldFailedBots) {
+      try {
+        await deleteBotAndCleanup(bot);
+        console.log(`Deleted old failed bot: ${bot.herokuAppName}`);
+      } catch (error: any) {
+        console.error(`Error deleting old failed bot ${bot.herokuAppName}:`, error);
+      }
+    }
+  } catch (error: any) {
+    console.error("Error cleaning up old failed bots:", error);
   }
 }
 

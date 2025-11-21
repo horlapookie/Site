@@ -106,6 +106,42 @@ export async function getAppLogs(appName: string, lines: number = 100) {
   }
 }
 
+export async function updateHerokuApp(appName: string, config: DeploymentConfig) {
+  try {
+    // Update config vars (environment variables)
+    await heroku.patch(`/apps/${appName}/config-vars`, {
+      body: {
+        NODE_ENV: "production",
+        BOT_PREFIX: config.prefix,
+        BOT_NUMBER: config.botNumber,
+        BOT_OWNER_NAME: "Eclipse",
+        BOT_NAME: "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻",
+        BOT_SESSION_DATA: config.sessionData,
+        ...(config.openaiKey && { OPENAI_API_KEY: config.openaiKey }),
+        ...(config.geminiKey && { GEMINI_API_KEY: config.geminiKey }),
+        AUTO_VIEW_MESSAGE: config.autoViewMessage.toString(),
+        AUTO_VIEW_STATUS: config.autoViewStatus.toString(),
+        AUTO_REACT_STATUS: config.autoReactStatus.toString(),
+        AUTO_REACT: config.autoReact.toString(),
+        AUTO_STATUS_EMOJI: "❤️",
+        AUTO_TYPING: config.autoTyping.toString(),
+        AUTO_RECORDING: config.autoRecording.toString(),
+      },
+    });
+
+    // Restart the app to apply new config
+    await heroku.delete(`/apps/${appName}/dynos`);
+
+    return {
+      success: true,
+      message: "Bot configuration updated and restarted successfully",
+    };
+  } catch (error: any) {
+    console.error("Heroku update error:", error);
+    throw new Error(`Failed to update Heroku app: ${error.message}`);
+  }
+}
+
 export async function restartApp(appName: string) {
   try {
     await heroku.delete(`/apps/${appName}/dynos`);

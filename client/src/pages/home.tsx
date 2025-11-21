@@ -16,15 +16,15 @@ export default function Home() {
       <Header isAuthenticated={false} onSignIn={handleSignIn} />
       <HeroSection onGetStarted={handleSignIn} />
       
-      {/* Bottom Banner Ad */}
+      {/* Bottom Banner Ad - Larger Size */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
-        <div className="container mx-auto p-2 flex items-center justify-center">
+        <div className="container mx-auto p-3 flex items-center justify-center">
           <iframe
-            src="https://rel-s.com/4/10218851"
+            src="https://rel-s.com/4/10218851?var=eclipse-md-horkapookie.zone.id"
             style={{
               width: '100%',
-              maxWidth: '728px',
-              height: '90px',
+              maxWidth: '970px',
+              height: '150px',
               border: 'none',
               display: 'block'
             }}

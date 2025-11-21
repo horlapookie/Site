@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { connectDB } from "./mongodb";
 import Bot from "./models/Bot";
 import { botDeploymentSchema, type User } from "@shared/schema";
-import { createHerokuApp, getAppLogs, restartApp, deleteApp } from "./herokuService";
+import { createHerokuApp, updateHerokuApp, getAppLogs, restartApp, deleteApp } from "./herokuService";
 import { generateToken, verifyToken, getUserId as getAuthUserId } from "./auth";
 
 const DEPLOYMENT_COST = 10; // coins per deployment
@@ -486,16 +486,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "deploying"
       });
 
-      // Redeploy to Heroku with new configuration asynchronously
-      createHerokuApp(bot.herokuAppName, validatedData)
+      // Update Heroku app configuration asynchronously
+      updateHerokuApp(bot.herokuAppName, validatedData)
         .then(async () => {
           await Bot.findByIdAndUpdate(bot._id, {
             status: "running"
           });
-          console.log(`Bot ${bot.herokuAppName} redeployed successfully`);
+          console.log(`Bot ${bot.herokuAppName} updated and restarted successfully`);
         })
         .catch(async (error) => {
-          console.error("Heroku redeployment failed:", error);
+          console.error("Heroku update failed:", error);
           await Bot.findByIdAndUpdate(bot._id, {
             status: "failed"
           });
@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-      res.json({ message: "Bot update started. It will redeploy with new configuration." });
+      res.json({ message: "Bot update started. Configuration will be updated and bot will restart." });
     } catch (error: any) {
       console.error("Error updating bot:", error);
       if (error.name === "ZodError") {
@@ -568,6 +568,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating auto-monitor:", error);
       res.status(500).json({ message: "Failed to update auto-monitor setting" });
+    }
+  });
+
+  // Admin-only endpoints
+  const requireAdmin = async (req: any, res: any, next: any) => {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = await storage.getUser(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    
+    req.userId = userId;
+    next();
+  };
+
+  // Get bot statistics (admin only)
+  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    try {
+      const [runningCount, failedCount, deployingCount, stoppedCount, totalUsers, allBots] = await Promise.all([
+        Bot.countDocuments({ status: "running" }),
+        Bot.countDocuments({ status: "failed" }),
+        Bot.countDocuments({ status: "deploying" }),
+        Bot.countDocuments({ status: "stopped" }),
+        storage.getUserCount(),
+        Bot.find({}).select('userId herokuAppName status').lean()
+      ]);
+
+      // Group bots by user
+      const botsByUser = allBots.reduce((acc: any, bot: any) => {
+        const userId = bot.userId;
+        if (!acc[userId]) {
+          acc[userId] = [];
+        }
+        acc[userId].push({
+          name: bot.herokuAppName,
+          status: bot.status
+        });
+        return acc;
+      }, {});
+
+      res.json({
+        bots: {
+          running: runningCount,
+          failed: failedCount,
+          deploying: deployingCount,
+          stopped: stoppedCount,
+          total: runningCount + failedCount + deployingCount + stoppedCount
+        },
+        users: totalUsers,
+        botsByUser
+      });
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  // Get all users with their details (admin only)
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const usersWithBotCount = await Promise.all(
+        users.map(async (user) => {
+          const botCount = await Bot.countDocuments({ userId: user.id });
+          // Explicitly exclude password field
+          return {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            coins: user.coins,
+            isAdmin: user.isAdmin,
+            referralCode: user.referralCode,
+            referralCount: user.referralCount,
+            autoMonitor: user.autoMonitor,
+            createdAt: user.createdAt,
+            botCount
+          };
+        })
+      );
+      
+      res.json(usersWithBotCount);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 

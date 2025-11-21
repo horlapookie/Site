@@ -11,6 +11,7 @@ import Deploy from "@/pages/deploy";
 import Signup from "@/pages/signup";
 import Login from "@/pages/login";
 import Privacy from "@/pages/privacy";
+import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/deploy" component={Deploy} />
+      <Route path="/admin" component={AdminPage} />
       <Route path="/signup" component={Dashboard} />
       <Route path="/login" component={Dashboard} />
       <Route component={NotFound} />

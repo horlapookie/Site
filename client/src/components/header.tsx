@@ -1,4 +1,4 @@
-import { Coins, Moon, Sun, Copy, Check, Send, History, BadgeCheck, Settings } from "lucide-react";
+import { Coins, Moon, Sun, Copy, Check, Send, History, BadgeCheck, Settings, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "./theme-provider";
@@ -128,6 +128,17 @@ export function Header({ isAuthenticated = false, coins = 0, username = "User", 
                   <Settings className="mr-2 h-4 w-4" />
                   Account Settings
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <a href="/admin" className="cursor-pointer" data-testid="link-admin-dashboard">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </a>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setTheme(theme === "light" ? "dark" : "light")} data-testid="button-theme-toggle">
                   {theme === "light" ? (

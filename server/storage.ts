@@ -35,6 +35,8 @@ export interface IStorage {
   getTransactions(userId: string, limit?: number): Promise<any[]>;
   updateUserProfile(id: string, updates: { firstName?: string; lastName?: string }): Promise<any | undefined>;
   updateAutoMonitor(id: string, autoMonitor: number): Promise<any | undefined>;
+  getUserCount(): Promise<number>;
+  getAllUsers(): Promise<any[]>;
 }
 
 export class MongoStorage implements IStorage {
@@ -459,6 +461,30 @@ export class MongoStorage implements IStorage {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  async getUserCount(): Promise<number> {
+    return await User.countDocuments();
+  }
+
+  async getAllUsers(): Promise<any[]> {
+    const users = await User.find({}).lean();
+    return users.map((user) => ({
+      id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      autoMonitor: user.autoMonitor || 0,
+      isAdmin: user.isAdmin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }));
   }
 }
 

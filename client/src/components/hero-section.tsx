@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Zap, Shield, Terminal } from "lucide-react";
+import { SiWhatsapp, SiTelegram } from "react-icons/si";
 
 interface HeroSectionProps {
   onGetStarted?: () => void;
@@ -78,6 +79,50 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
               <p className="text-sm text-muted-foreground">
                 Your credentials are encrypted and your bots run 24/7
               </p>
+            </div>
+          </div>
+
+          {/* Contact Support Section */}
+          <div className="mt-16 pt-8 border-t">
+            <div className="flex flex-col items-center gap-4">
+              <h3 className="text-xl font-semibold">Need Help?</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md">
+                Get instant support from our team through WhatsApp or Telegram
+              </p>
+              <div className="flex flex-col items-center gap-3 sm:flex-row">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  asChild
+                  className="gap-2 min-w-[200px]"
+                  data-testid="link-whatsapp-channel-hero"
+                >
+                  <a
+                    href="https://whatsapp.com/channel/0029VbBu7CaLtOjAOyp5kR1i"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <SiWhatsapp className="h-5 w-5" />
+                    Follow us on WhatsApp
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  asChild
+                  className="gap-2 min-w-[200px]"
+                  data-testid="link-telegram-admin-hero"
+                >
+                  <a
+                    href="https://t.me/horlapookie"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <SiTelegram className="h-5 w-5" />
+                    Contact Admin
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
