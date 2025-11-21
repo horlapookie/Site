@@ -491,6 +491,62 @@ export class MongoStorage implements IStorage {
       updatedAt: user.updatedAt,
     }));
   }
+
+  async addCoins(id: string, amount: number, description: string): Promise<boolean> {
+    const user = await this.getUser(id);
+    if (!user) return false;
+    
+    const newBalance = user.coins + amount;
+    await this.updateUserCoins(id, newBalance);
+    
+    await Transaction.create({
+      userId: id,
+      type: "addition",
+      amount,
+      description,
+      balanceAfter: newBalance,
+    });
+    
+    return true;
+  }
+
+  async getTaskCompletion(userId: string, taskId: string): Promise<any | null> {
+    const TaskCompletion = (await import("./models/TaskCompletion")).default;
+    return await TaskCompletion.findOne({ userId, taskId }).lean();
+  }
+
+  async getTaskCompletions(userId: string): Promise<any[]> {
+    const TaskCompletion = (await import("./models/TaskCompletion")).default;
+    return await TaskCompletion.find({ userId }).lean();
+  }
+
+  async completeTask(userId: string, taskId: string, metadata?: any): Promise<boolean> {
+    const TaskCompletion = (await import("./models/TaskCompletion")).default;
+    
+    try {
+      await TaskCompletion.create({
+        userId,
+        taskId,
+        metadata: metadata || {},
+      });
+      return true;
+    } catch (error: any) {
+      if (error.code === 11000) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async updateTaskMetadata(userId: string, taskId: string, metadata: any): Promise<boolean> {
+    const TaskCompletion = (await import("./models/TaskCompletion")).default;
+    const result = await TaskCompletion.findOneAndUpdate(
+      { userId, taskId },
+      { $set: { metadata, completedAt: new Date() } },
+      { new: true }
+    );
+    return !!result;
+  }
 }
 
 export const storage = new MongoStorage();

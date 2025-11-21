@@ -660,8 +660,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Task system routes
-  const TaskCompletion = (await import("./models/TaskCompletion")).default;
+  // Task system routes (using storage layer for security)
   
   // Get all tasks with completion status
   app.get("/api/tasks", requireAuth, async (req, res) => {
@@ -672,10 +671,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const completedTasks = await TaskCompletion.find({ userId });
+      const completedTasks = await storage.getTaskCompletions(userId);
       const today = new Date().toDateString();
 
-      // Get ad watch count for today
       const adTask = completedTasks.find(t => t.taskId === 'view_ads_daily');
       const adsWatchedToday = adTask?.metadata?.lastAdWatchDate === today ? (adTask.metadata.adsWatchedToday || 0) : 0;
 
@@ -687,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reward: 2,
           icon: 'Bell',
           completed: completedTasks.some(t => t.taskId === 'notification_permission'),
-          canComplete: true,
+          canComplete: !completedTasks.some(t => t.taskId === 'notification_permission'),
         },
         {
           id: 'view_ads_daily',
@@ -707,7 +705,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reward: 1,
           icon: 'MessageCircle',
           completed: completedTasks.some(t => t.taskId === 'whatsapp_follow'),
-          canComplete: true,
+          canComplete: !completedTasks.some(t => t.taskId === 'whatsapp_follow'),
           link: 'https://whatsapp.com/channel/0029VarnKCp2YlEkLSeF2M0F',
         },
         {
@@ -717,7 +715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reward: 1,
           icon: 'Send',
           completed: completedTasks.some(t => t.taskId === 'telegram_follow'),
-          canComplete: true,
+          canComplete: !completedTasks.some(t => t.taskId === 'telegram_follow'),
           link: 'https://t.me/yourhighnesstech1',
         },
         {
@@ -727,7 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reward: 2,
           icon: 'Users',
           completed: completedTasks.some(t => t.taskId === 'referral_milestone'),
-          canComplete: (user.referralCount || 0) >= 5,
+          canComplete: (user.referralCount || 0) >= 5 && !completedTasks.some(t => t.taskId === 'referral_milestone'),
         },
         {
           id: 'watch_ads_video',
@@ -736,7 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           reward: 2,
           icon: 'Video',
           completed: completedTasks.some(t => t.taskId === 'watch_ads_video'),
-          canComplete: true,
+          canComplete: !completedTasks.some(t => t.taskId === 'watch_ads_video'),
         },
       ];
 
@@ -747,7 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete a task
+  // Complete a task (using storage layer)
   app.post("/api/tasks/:taskId/complete", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req)!;
@@ -758,11 +756,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Check if task already completed (except for daily ad viewing)
-      const existingCompletion = await TaskCompletion.findOne({ userId, taskId });
+      const existingCompletion = await storage.getTaskCompletion(userId, taskId);
+      const today = new Date().toDateString();
       
       if (taskId === 'view_ads_daily') {
-        const today = new Date().toDateString();
         const adsWatchedToday = existingCompletion?.metadata?.lastAdWatchDate === today ? 
           (existingCompletion.metadata.adsWatchedToday || 0) : 0;
         
@@ -770,46 +767,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Daily limit reached" });
         }
 
-        // Update or create ad watch record
+        const newCount = adsWatchedToday + 1;
         if (existingCompletion) {
-          const newCount = existingCompletion.metadata?.lastAdWatchDate === today ? 
-            (existingCompletion.metadata.adsWatchedToday || 0) + 1 : 1;
-          
-          await TaskCompletion.findByIdAndUpdate(existingCompletion._id, {
-            $set: {
-              'metadata.adsWatchedToday': newCount,
-              'metadata.lastAdWatchDate': today,
-              completedAt: new Date(),
-            }
+          await storage.updateTaskMetadata(userId, taskId, {
+            adsWatchedToday: newCount,
+            lastAdWatchDate: today,
           });
         } else {
-          await TaskCompletion.create({
-            userId,
-            taskId,
-            metadata: {
-              adsWatchedToday: 1,
-              lastAdWatchDate: today,
-            }
+          await storage.completeTask(userId, taskId, {
+            adsWatchedToday: newCount,
+            lastAdWatchDate: today,
           });
         }
       } else {
-        // For non-daily tasks
         if (existingCompletion) {
           return res.status(400).json({ message: "Task already completed" });
         }
 
-        // Special validation for referral milestone
         if (taskId === 'referral_milestone' && (user.referralCount || 0) < 5) {
           return res.status(400).json({ message: "You need 5 referrals to complete this task" });
         }
 
-        await TaskCompletion.create({
-          userId,
-          taskId,
-        });
+        const completed = await storage.completeTask(userId, taskId);
+        if (!completed) {
+          return res.status(400).json({ message: "Task already completed" });
+        }
       }
 
-      // Award coins based on task
       const rewards: Record<string, number> = {
         notification_permission: 2,
         view_ads_daily: 1,
@@ -820,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const reward = rewards[taskId] || 0;
-      await storage.updateUserCoins(userId, user.coins + reward);
+      await storage.addCoins(userId, reward, `Completed task: ${taskId}`);
 
       res.json({ 
         success: true, 
