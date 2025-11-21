@@ -37,6 +37,8 @@ export default function Dashboard() {
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [selectedBot, setSelectedBot] = useState<any | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -84,19 +86,61 @@ export default function Dashboard() {
     },
   });
 
+  const updateBotMutation = useMutation({
+    mutationFn: async ({ botId, botData }: { botId: string; botData: any }) => {
+      await apiRequest("PUT", `/api/bots/${botId}`, botData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Bot updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      setEditDialogOpen(false);
+      setSelectedBot(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update bot",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const enableAutoMonitorMutation = useMutation({
+    mutationFn: async ({ botId, enable }: { botId: string; enable: boolean }) => {
+      const response = await apiRequest("POST", `/api/bots/${botId}/auto-monitor`, { enable });
+      return response;
+    },
+    onSuccess: (data, variables) => {
+      const action = variables.enable ? "enabled" : "disabled";
+      toast({
+        title: "Success",
+        description: `Auto-monitor ${action} successfully. ${data.deduction} coins deducted.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update auto-monitor setting",
+        variant: "destructive",
+      });
+    },
+  });
+
+
   const handleDeploy = () => {
     setLocation("/deploy");
   };
 
   const handleSignOut = async () => {
-    // Clear JWT token from localStorage
     localStorage.removeItem('auth_token');
-    // Invalidate and reset the auth query immediately
     await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     await queryClient.resetQueries({ queryKey: ["/api/auth/user"] });
-    // Clear all cached data
     queryClient.clear();
-    // Force a hard redirect to login page
     window.location.href = "/login";
   };
 
@@ -116,6 +160,36 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
   };
+
+  const handleViewLogs = (botId: string) => {
+    setSelectedBotForLogs(botId);
+  };
+
+  const handleDelete = (botId: string) => {
+    setBotToDelete(botId);
+  };
+
+  const handleEdit = (botId: string) => {
+    const bot = bots?.find((b: any) => b._id === botId);
+    if (bot) {
+      setSelectedBot(bot);
+      setEditDialogOpen(true);
+    }
+  };
+
+  const handleAutoMonitorToggle = async (botId: string, currentStatus: boolean) => {
+    const deductionAmount = 15; // 15 coins for monitoring
+    if (!currentStatus && (user?.coins ?? 0) < deductionAmount) {
+      toast({
+        title: "Insufficient Coins",
+        description: `You need at least ${deductionAmount} coins to enable auto-monitor.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    await enableAutoMonitorMutation.mutateAsync({ botId, enable: !currentStatus });
+  };
+
 
   if (isLoading || isLoadingBots) {
     return (
@@ -187,9 +261,11 @@ export default function Dashboard() {
               <BotCard
                 key={bot._id}
                 bot={bot}
-                onViewLogs={() => setSelectedBotForLogs(bot._id)}
+                onViewLogs={() => handleViewLogs(bot._id)}
                 onRestart={() => restartMutation.mutate(bot._id)}
-                onDelete={() => setBotToDelete(bot._id)}
+                onDelete={() => handleDelete(bot._id)}
+                onEdit={handleEdit}
+                onAutoMonitorToggle={() => handleAutoMonitorToggle(bot._id, bot.autoMonitor)}
               />
             ))}
           </div>
@@ -227,6 +303,15 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedBot && (
+        <BotCard
+          bot={selectedBot}
+          isOpen={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSave={(updatedBotData) => updateBotMutation.mutate({ botId: selectedBot._id, botData: updatedBotData })}
+        />
+      )}
     </div>
   );
 }

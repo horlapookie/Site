@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { restartApp } from "./herokuService";
 
 const MONITOR_INTERVAL = 10 * 60 * 1000; // 10 minutes
+const MONITOR_COST = 15; // 15 coins per restart
 
 async function checkAndRestartBots() {
   try {
@@ -21,6 +22,12 @@ async function checkAndRestartBots() {
         if (!user || user.autoMonitor !== 1) {
           continue;
         }
+
+        // Check if user has enough coins
+        if (user.coins < MONITOR_COST) {
+          console.log(`User ${user.email} has insufficient coins (${user.coins}/${MONITOR_COST}) for auto-monitor, skipping bot ${bot.herokuAppName}`);
+          continue;
+        }
         
         console.log(`Auto-monitor: Attempting to restart bot ${bot.herokuAppName} for user ${user.email}`);
         
@@ -32,8 +39,14 @@ async function checkAndRestartBots() {
           await Bot.findByIdAndUpdate(bot._id, {
             status: "running"
           });
-          
-          console.log(`Auto-monitor: Successfully restarted bot ${bot.herokuAppName}`);
+
+          // Deduct coins for the restart
+          const deducted = await storage.deductCoins(bot.userId, MONITOR_COST);
+          if (deducted) {
+            console.log(`Auto-monitor: Successfully restarted bot ${bot.herokuAppName} and deducted ${MONITOR_COST} coins`);
+          } else {
+            console.log(`Auto-monitor: Bot ${bot.herokuAppName} restarted but failed to deduct coins`);
+          }
         } catch (restartError: any) {
           console.error(`Auto-monitor: Failed to restart bot ${bot.herokuAppName}:`, restartError.message);
           
