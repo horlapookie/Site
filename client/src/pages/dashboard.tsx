@@ -86,27 +86,6 @@ export default function Dashboard() {
     },
   });
 
-  const updateBotMutation = useMutation({
-    mutationFn: async ({ botId, botData }: { botId: string; botData: any }) => {
-      await apiRequest("PUT", `/api/bots/${botId}`, botData);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Bot updated successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
-      setEditDialogOpen(false);
-      setSelectedBot(null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update bot",
-        variant: "destructive",
-      });
-    },
-  });
 
   const enableAutoMonitorMutation = useMutation({
     mutationFn: async ({ botId, enable }: { botId: string; enable: boolean }) => {
@@ -304,14 +283,11 @@ export default function Dashboard() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {selectedBot && (
-        <BotCard
-          bot={selectedBot}
-          isOpen={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-          onSave={(updatedBotData) => updateBotMutation.mutate({ botId: selectedBot._id, botData: updatedBotData })}
-        />
-      )}
+      <EditBotDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        bot={selectedBot}
+      />
     </div>
   );
 }

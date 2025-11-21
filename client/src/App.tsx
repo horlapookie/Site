@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import Deploy from "@/pages/deploy";
+import Tasks from "@/pages/tasks";
 import Signup from "@/pages/signup";
 import Login from "@/pages/login";
 import Privacy from "@/pages/privacy";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/deploy" component={Deploy} />
+      <Route path="/tasks" component={Tasks} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/signup" component={Dashboard} />
       <Route path="/login" component={Dashboard} />

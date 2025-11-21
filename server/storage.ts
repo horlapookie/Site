@@ -24,6 +24,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<any>;
   updateUserCoins(id: string, coins: number): Promise<void>;
   deductCoins(id: string, amount: number): Promise<boolean>;
+  addCoins(id: string, amount: number, description: string): Promise<boolean>;
   canClaimCoins(id: string): Promise<boolean>;
   claimCoin(id: string): Promise<{ success: boolean; coinsRemaining: number; totalCoins: number }>;
   deleteAllUsers(): Promise<void>;
@@ -37,6 +38,10 @@ export interface IStorage {
   updateAutoMonitor(id: string, autoMonitor: number): Promise<any | undefined>;
   getUserCount(): Promise<number>;
   getAllUsers(): Promise<any[]>;
+  getTaskCompletion(userId: string, taskId: string): Promise<any | null>;
+  completeTask(userId: string, taskId: string, metadata?: any): Promise<boolean>;
+  getTaskCompletions(userId: string): Promise<any[]>;
+  updateTaskMetadata(userId: string, taskId: string, metadata: any): Promise<boolean>;
 }
 
 export class MongoStorage implements IStorage {

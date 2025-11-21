@@ -660,6 +660,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task system routes
+  const TaskCompletion = (await import("./models/TaskCompletion")).default;
+  
+  // Get all tasks with completion status
+  app.get("/api/tasks", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const completedTasks = await TaskCompletion.find({ userId });
+      const today = new Date().toDateString();
+
+      // Get ad watch count for today
+      const adTask = completedTasks.find(t => t.taskId === 'view_ads_daily');
+      const adsWatchedToday = adTask?.metadata?.lastAdWatchDate === today ? (adTask.metadata.adsWatchedToday || 0) : 0;
+
+      const tasks = [
+        {
+          id: 'notification_permission',
+          title: 'Enable Notifications',
+          description: 'Allow site notifications to earn 2 coins',
+          reward: 2,
+          icon: 'Bell',
+          completed: completedTasks.some(t => t.taskId === 'notification_permission'),
+          canComplete: true,
+        },
+        {
+          id: 'view_ads_daily',
+          title: 'View Ads',
+          description: 'Watch ads for 5 seconds to earn 1 coin (max 10 per day)',
+          reward: 1,
+          icon: 'Eye',
+          completed: false,
+          canComplete: adsWatchedToday < 10,
+          dailyLimit: 10,
+          dailyProgress: adsWatchedToday,
+        },
+        {
+          id: 'whatsapp_follow',
+          title: 'Follow us on WhatsApp',
+          description: 'Join our WhatsApp channel to earn 1 coin',
+          reward: 1,
+          icon: 'MessageCircle',
+          completed: completedTasks.some(t => t.taskId === 'whatsapp_follow'),
+          canComplete: true,
+          link: 'https://whatsapp.com/channel/0029VarnKCp2YlEkLSeF2M0F',
+        },
+        {
+          id: 'telegram_follow',
+          title: 'Follow us on Telegram',
+          description: 'Join our Telegram channel to earn 1 coin',
+          reward: 1,
+          icon: 'Send',
+          completed: completedTasks.some(t => t.taskId === 'telegram_follow'),
+          canComplete: true,
+          link: 'https://t.me/yourhighnesstech1',
+        },
+        {
+          id: 'referral_milestone',
+          title: 'Refer 5 Friends',
+          description: 'Get 5 referrals to earn 2 coins',
+          reward: 2,
+          icon: 'Users',
+          completed: completedTasks.some(t => t.taskId === 'referral_milestone'),
+          canComplete: (user.referralCount || 0) >= 5,
+        },
+        {
+          id: 'watch_ads_video',
+          title: 'Watch 3 Video Ads',
+          description: 'Watch 3 video advertisements to earn 2 coins',
+          reward: 2,
+          icon: 'Video',
+          completed: completedTasks.some(t => t.taskId === 'watch_ads_video'),
+          canComplete: true,
+        },
+      ];
+
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  // Complete a task
+  app.post("/api/tasks/:taskId/complete", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { taskId } = req.params;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check if task already completed (except for daily ad viewing)
+      const existingCompletion = await TaskCompletion.findOne({ userId, taskId });
+      
+      if (taskId === 'view_ads_daily') {
+        const today = new Date().toDateString();
+        const adsWatchedToday = existingCompletion?.metadata?.lastAdWatchDate === today ? 
+          (existingCompletion.metadata.adsWatchedToday || 0) : 0;
+        
+        if (adsWatchedToday >= 10) {
+          return res.status(400).json({ message: "Daily limit reached" });
+        }
+
+        // Update or create ad watch record
+        if (existingCompletion) {
+          const newCount = existingCompletion.metadata?.lastAdWatchDate === today ? 
+            (existingCompletion.metadata.adsWatchedToday || 0) + 1 : 1;
+          
+          await TaskCompletion.findByIdAndUpdate(existingCompletion._id, {
+            $set: {
+              'metadata.adsWatchedToday': newCount,
+              'metadata.lastAdWatchDate': today,
+              completedAt: new Date(),
+            }
+          });
+        } else {
+          await TaskCompletion.create({
+            userId,
+            taskId,
+            metadata: {
+              adsWatchedToday: 1,
+              lastAdWatchDate: today,
+            }
+          });
+        }
+      } else {
+        // For non-daily tasks
+        if (existingCompletion) {
+          return res.status(400).json({ message: "Task already completed" });
+        }
+
+        // Special validation for referral milestone
+        if (taskId === 'referral_milestone' && (user.referralCount || 0) < 5) {
+          return res.status(400).json({ message: "You need 5 referrals to complete this task" });
+        }
+
+        await TaskCompletion.create({
+          userId,
+          taskId,
+        });
+      }
+
+      // Award coins based on task
+      const rewards: Record<string, number> = {
+        notification_permission: 2,
+        view_ads_daily: 1,
+        whatsapp_follow: 1,
+        telegram_follow: 1,
+        referral_milestone: 2,
+        watch_ads_video: 2,
+      };
+
+      const reward = rewards[taskId] || 0;
+      await storage.updateUserCoins(userId, user.coins + reward);
+
+      res.json({ 
+        success: true, 
+        reward,
+        message: `Task completed! You earned ${reward} coins.` 
+      });
+    } catch (error) {
+      console.error("Error completing task:", error);
+      res.status(500).json({ message: "Failed to complete task" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

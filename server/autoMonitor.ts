@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { restartApp } from "./herokuService";
 
 const MONITOR_INTERVAL = 10 * 60 * 1000; // 10 minutes
-const MONITOR_COST = 15; // 15 coins per restart
+const MONITOR_COST = 5; // 5 coins per restart
 
 async function checkAndRestartBots() {
   try {

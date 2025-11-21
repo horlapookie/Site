@@ -51,3 +51,37 @@ export const botDeploymentSchema = z.object({
 });
 
 export type BotDeploymentInput = z.infer<typeof botDeploymentSchema>;
+
+// Task types
+export const TASKS = {
+  NOTIFICATION_PERMISSION: 'notification_permission',
+  VIEW_ADS_DAILY: 'view_ads_daily',
+  WHATSAPP_FOLLOW: 'whatsapp_follow',
+  TELEGRAM_FOLLOW: 'telegram_follow',
+  REFERRAL_MILESTONE: 'referral_milestone',
+  WATCH_ADS_VIDEO: 'watch_ads_video',
+} as const;
+
+export const TASK_REWARDS = {
+  [TASKS.NOTIFICATION_PERMISSION]: 2,
+  [TASKS.VIEW_ADS_DAILY]: 1,
+  [TASKS.WHATSAPP_FOLLOW]: 1,
+  [TASKS.TELEGRAM_FOLLOW]: 1,
+  [TASKS.REFERRAL_MILESTONE]: 2,
+  [TASKS.WATCH_ADS_VIDEO]: 2,
+} as const;
+
+export type TaskId = typeof TASKS[keyof typeof TASKS];
+
+export interface TaskInfo {
+  id: TaskId;
+  title: string;
+  description: string;
+  reward: number;
+  icon: string;
+  completed: boolean;
+  canComplete: boolean;
+  dailyLimit?: number;
+  dailyProgress?: number;
+  link?: string;
+}

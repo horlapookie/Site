@@ -5,7 +5,8 @@ import { useLocation } from "wouter";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Server, AlertCircle, Clock, Coins } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Users, Server, AlertCircle, Clock, Coins, ArrowLeft, BadgeCheck } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -47,12 +48,55 @@ export default function AdminPage() {
       <Header isAuthenticated={true} isAdmin={user.isAdmin} />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation("/dashboard")}
+            className="mb-4"
+            data-testid="button-back-to-dashboard"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
           <p className="text-muted-foreground">
             Manage bots and monitor platform statistics
           </p>
         </div>
+
+        {/* Admin Profile Card */}
+        <Card className="mb-8 border-blue-500/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BadgeCheck className="h-5 w-5 text-blue-500" />
+              Admin Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-semibold">{user.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Name</p>
+                <p className="font-semibold">
+                  {user.firstName || user.lastName
+                    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                    : "Not set"}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Coin Balance</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Coins className="h-5 w-5 text-yellow-500" />
+                  <p className="text-2xl font-bold">{user.coins}</p>
+                  <span className="text-sm text-muted-foreground">coins</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">

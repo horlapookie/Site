@@ -1,4 +1,4 @@
-import { Coins, Moon, Sun, Copy, Check, Send, History, BadgeCheck, Settings, Shield } from "lucide-react";
+import { Coins, Moon, Sun, Copy, Check, Send, History, BadgeCheck, Settings, Shield, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTheme } from "./theme-provider";
@@ -115,6 +115,12 @@ export function Header({ isAuthenticated = false, coins = 0, username = "User", 
                 <DropdownMenuItem onClick={onClaimCoins} data-testid="button-claim-coins">
                   <Coins className="mr-2 h-4 w-4" />
                   Claim Coins
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/tasks" className="cursor-pointer" data-testid="link-tasks">
+                    <ListChecks className="mr-2 h-4 w-4" />
+                    Tasks & Rewards
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onTransferCoins} data-testid="button-transfer-coins">
                   <Send className="mr-2 h-4 w-4" />
