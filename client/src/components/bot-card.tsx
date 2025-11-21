@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Terminal, Power, Trash2, RotateCw } from "lucide-react";
+import { Terminal, Power, Trash2, RotateCw, Edit } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
 interface Bot {
@@ -19,6 +19,7 @@ interface BotCardProps {
   onViewLogs: (botId: string) => void;
   onRestart: (botId: string) => void;
   onDelete: (botId: string) => void;
+  onEdit: (botId: string) => void;
 }
 
 const statusConfig = {
@@ -28,7 +29,7 @@ const statusConfig = {
   failed: { label: "Failed", variant: "destructive" as const, color: "bg-red-500" },
 };
 
-export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) {
+export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit }: BotCardProps) {
   if (!bot || !bot.status) {
     return null;
   }
@@ -70,6 +71,14 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete }: BotCardProps) 
         >
           <Terminal className="w-4 h-4 mr-2" />
           View Logs
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onEdit(bot._id)}
+          data-testid={`button-edit-${bot._id}`}
+        >
+          <Edit className="w-4 h-4" />
         </Button>
         <Button
           variant="outline"

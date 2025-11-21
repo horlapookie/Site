@@ -455,6 +455,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update bot configuration (costs 5 coins)
+  app.patch("/api/bots/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const bot = await Bot.findOne({ _id: req.params.id, userId });
+
+      if (!bot) {
+        return res.status(404).json({ message: "Bot not found" });
+      }
+
+      // Check if user has enough coins (5 coins for edit/redeploy)
+      const user = await storage.getUser(userId);
+      if (!user || user.coins < 5) {
+        return res.status(400).json({ message: "Insufficient coins. You need 5 coins to edit and redeploy a bot." });
+      }
+
+      // Validate input
+      const validatedData = botDeploymentSchema.parse(req.body);
+
+      // Deduct 5 coins
+      const deducted = await storage.deductCoins(userId, 5);
+      if (!deducted) {
+        return res.status(400).json({ message: "Failed to deduct coins" });
+      }
+
+      // Update bot configuration in MongoDB
+      await Bot.findByIdAndUpdate(bot._id, {
+        ...validatedData,
+        status: "deploying"
+      });
+
+      // Redeploy to Heroku with new configuration asynchronously
+      createHerokuApp(bot.herokuAppName, validatedData)
+        .then(async () => {
+          await Bot.findByIdAndUpdate(bot._id, {
+            status: "running"
+          });
+          console.log(`Bot ${bot.herokuAppName} redeployed successfully`);
+        })
+        .catch(async (error) => {
+          console.error("Heroku redeployment failed:", error);
+          await Bot.findByIdAndUpdate(bot._id, {
+            status: "failed"
+          });
+          // Refund coins to user on failure
+          const currentUser = await storage.getUser(userId);
+          if (currentUser) {
+            await storage.updateUserCoins(userId, currentUser.coins + 5);
+          }
+        });
+
+      res.json({ message: "Bot update started. It will redeploy with new configuration." });
+    } catch (error: any) {
+      console.error("Error updating bot:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update bot" });
+    }
+  });
+
   // Delete bot deployment
   app.delete("/api/bots/:id", requireAuth, async (req, res) => {
     try {
@@ -485,6 +546,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting bot:", error);
       res.status(500).json({ message: "Failed to delete bot" });
+    }
+  });
+
+  // Update auto-monitor setting
+  app.patch("/api/auth/user/auto-monitor", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { autoMonitor } = req.body;
+
+      if (typeof autoMonitor !== 'number' || (autoMonitor !== 0 && autoMonitor !== 1)) {
+        return res.status(400).json({ message: "autoMonitor must be 0 or 1" });
+      }
+
+      const updatedUser = await storage.updateAutoMonitor(userId, autoMonitor);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(sanitizeUser(updatedUser));
+    } catch (error) {
+      console.error("Error updating auto-monitor:", error);
+      res.status(500).json({ message: "Failed to update auto-monitor setting" });
     }
   });
 

@@ -27,6 +27,7 @@ export const users = pgTable("users", {
   referralCode: varchar("referral_code").unique(),
   referredBy: varchar("referred_by"),
   referralCount: integer("referral_count").default(0).notNull(),
+  autoMonitor: integer("auto_monitor").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

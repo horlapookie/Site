@@ -34,6 +34,7 @@ export interface IStorage {
   transferCoins(fromUserId: string, toUserEmail: string, amount: number): Promise<{ success: boolean; message: string }>;
   getTransactions(userId: string, limit?: number): Promise<any[]>;
   updateUserProfile(id: string, updates: { firstName?: string; lastName?: string }): Promise<any | undefined>;
+  updateAutoMonitor(id: string, autoMonitor: number): Promise<any | undefined>;
 }
 
 export class MongoStorage implements IStorage {
@@ -55,6 +56,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      autoMonitor: user.autoMonitor || 0,
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -77,6 +79,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      autoMonitor: user.autoMonitor || 0,
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -99,6 +102,7 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      autoMonitor: user.autoMonitor || 0,
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
