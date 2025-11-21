@@ -14,7 +14,7 @@ import { LogViewer } from "@/components/log-viewer";
 import { CoinClaimDialog } from "@/components/coin-claim-dialog";
 import { TransferCoinsDialog } from "@/components/transfer-coins-dialog";
 import { TransactionHistoryDialog } from "@/components/transaction-history-dialog";
-import { AccountSettingsDialog } from "@/components/account-settings-dialog";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { Footer } from "@/components/footer";
 import {
   AlertDialog,
@@ -157,12 +157,12 @@ export default function Dashboard() {
         onOpenChange={setShowHistoryDialog}
       />
 
-      <AccountSettingsDialog
+      <SettingsDialog
         open={showSettingsDialog}
         onOpenChange={setShowSettingsDialog}
         currentFirstName={user?.firstName}
         currentLastName={user?.lastName}
-        isAdmin={user?.isAdmin}
+        autoMonitor={user?.autoMonitor}
       />
 
       <main className="container px-4 py-8 md:px-6">
