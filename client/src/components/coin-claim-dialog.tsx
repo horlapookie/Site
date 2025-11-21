@@ -129,21 +129,6 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
               <Loader2 className="h-4 w-4 animate-spin" />
               <p className="text-sm text-muted-foreground">Claiming coins...</p>
             </div>
-            <div className="mt-4 bg-muted/50 rounded-lg p-3">
-              <p className="text-xs text-muted-foreground text-center mb-2">Loading advertisement</p>
-              <iframe
-                src="https://rel-s.com/4/10218851?var=eclipse-md-horkapookie.zone.id"
-                style={{
-                  width: '100%',
-                  height: '100px',
-                  border: 'none',
-                  display: 'block',
-                  borderRadius: '0.375rem'
-                }}
-                scrolling="no"
-                title="Advertisement"
-              />
-            </div>
           </div>
         ) : (
           <div className="space-y-4 py-4">
