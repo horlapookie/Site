@@ -16,11 +16,11 @@ function getVar() {
     return null;
 }
 self.options = {
-    "domain": "gmamq.com",
+    "domain": "eclipse-md-horlapookie.zone.id",
     "resubscribeOnInstall": true,
     "zoneId": 10218073,
     "ymid": getYmid(),
     "var": getVar()
 }
 self.lary = "";
-importScripts('https://gmamq.com/act/files/sw.perm.check.min.js?r=sw');
+importScripts('https://eclipse-md-horlapookie.zone.id/act/files/sw.perm.check.min.js?r=sw');
