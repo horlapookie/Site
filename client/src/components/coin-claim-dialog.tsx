@@ -24,7 +24,7 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
   const [checking, setChecking] = useState(true);
 
   const TOTAL_COINS = 10;
-  const CLAIM_DELAY = 3000; // 3 seconds per coin
+  const CLAIM_DELAY = 5000; // 5 seconds per coin
 
   useEffect(() => {
     if (open) {
@@ -76,15 +76,21 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
           setTimeout(() => {
             onOpenChange(false);
             setClaimedCoins(0);
+            setClaiming(false);
           }, 1000);
+        } else {
+          // Wait 5 seconds before allowing next claim
+          setTimeout(() => {
+            setClaiming(false);
+          }, CLAIM_DELAY);
         }
       } else {
         const error = await response.json();
         console.error("Error claiming coin:", error);
+        setClaiming(false);
       }
     } catch (error) {
       console.error("Error claiming coin:", error);
-    } finally {
       setClaiming(false);
     }
   };

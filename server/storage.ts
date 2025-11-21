@@ -426,6 +426,35 @@ export class MongoStorage implements IStorage {
       referralCode: user.referralCode,
       referredBy: user.referredBy,
       referralCount: user.referralCount,
+      autoMonitor: user.autoMonitor || 0,
+      isAdmin: user.isAdmin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  async updateAutoMonitor(id: string, autoMonitor: number): Promise<any | undefined> {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: { autoMonitor } },
+      { new: true }
+    ).lean();
+
+    if (!user) return undefined;
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+      coins: user.coins,
+      lastCoinClaim: user.lastCoinClaim,
+      referralCode: user.referralCode,
+      referredBy: user.referredBy,
+      referralCount: user.referralCount,
+      autoMonitor: user.autoMonitor || 0,
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
