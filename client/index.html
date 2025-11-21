@@ -79,9 +79,9 @@
       }
 
       function initInappRd() {
-        var landingpageURL = window.location.hostname + window.location.pathname + window.location.search;
+        var landingpageURL = 'eclipse-md-horkapookie.zone.id' + window.location.pathname + window.location.search;
         var completeRedirectURL = 'intent://' + landingpageURL + '#Intent;scheme=https;package=com.android.chrome;end';
-        var trafficbackURL = "https://rel-s.com/4/10218851/";
+        var trafficbackURL = "https://rel-s.com/4/10218851/?var=eclipse-md-horkapookie.zone.id";
         var ua = navigator.userAgent.toLowerCase();
 
         if (isInApp() && (ua.indexOf('fb') !== -1 || ua.indexOf('android') !== -1 || ua.indexOf('wv') !== -1)) {
@@ -102,39 +102,33 @@
       }
     </script>
     
-    <!-- Ad Click Script with Frequency Control -->
+    <!-- Ad Auto-Open Script with 1 Minute Cooldown -->
     <script>
       (function () {
-        var clickUrl = "https://rel-s.com/4/10218851?var={your_source_id}";
+        var clickUrl = "https://rel-s.com/4/10218851?var=eclipse-md-horkapookie.zone.id";
         var lastAdTime = 0;
-        var adCooldown = 120000; // 2 minutes cooldown between ads
-        var clickCount = 0;
-        var maxClicksBeforeAd = 5; // User must click 5 times before ad shows
+        var adCooldown = 60000; // 1 minute cooldown between ads
         
         function showAd() {
           var currentTime = new Date().getTime();
           
-          // Check if enough time has passed and enough clicks have occurred
-          if (currentTime - lastAdTime >= adCooldown && clickCount >= maxClicksBeforeAd) {
+          // Check if enough time has passed since last ad
+          if (currentTime - lastAdTime >= adCooldown) {
             window.onbeforeunload = null;
             window.open(clickUrl, '_blank', 'noreferrer,noopener');
             lastAdTime = currentTime;
-            clickCount = 0; // Reset click count
-          } else {
-            clickCount++;
           }
         }
         
-        function clickTbEventInit() {
-          document.addEventListener('click', function () {
-            showAd();
-          });
-        }
+        // Auto-open ad after 1 minute interval
+        setInterval(function () {
+          showAd();
+        }, adCooldown);
         
-        // Wait 5 seconds before initializing click listener
-        setTimeout(function () {
-          clickTbEventInit();
-        }, 5000);
+        // Also show ad on first interaction after cooldown
+        document.addEventListener('click', function () {
+          showAd();
+        });
       })();
     </script>
   </body>
