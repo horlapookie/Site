@@ -31,17 +31,49 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
     }
   }, [autoScroll]);
 
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case "ERROR":
-        return "text-red-400";
-      case "SUCCESS":
-        return "text-green-400";
-      case "WARN":
-        return "text-yellow-400";
-      default:
-        return "text-blue-400";
+  const getLogColor = (line: string) => {
+    const lowerLine = line.toLowerCase();
+    
+    // Error patterns
+    if (lowerLine.includes('error') || 
+        lowerLine.includes('failed') || 
+        lowerLine.includes('exception') ||
+        lowerLine.includes('❌') ||
+        lowerLine.includes('✗')) {
+      return "text-red-400";
     }
+    
+    // Warning patterns
+    if (lowerLine.includes('warn') || 
+        lowerLine.includes('warning') ||
+        lowerLine.includes('⚠')) {
+      return "text-yellow-400";
+    }
+    
+    // Success patterns
+    if (lowerLine.includes('success') || 
+        lowerLine.includes('completed') || 
+        lowerLine.includes('connected') ||
+        lowerLine.includes('✓') ||
+        lowerLine.includes('✔')) {
+      return "text-green-400";
+    }
+    
+    // Info/Debug patterns
+    if (lowerLine.includes('info') || 
+        lowerLine.includes('debug')) {
+      return "text-blue-400";
+    }
+    
+    // Deployment/Starting patterns
+    if (lowerLine.includes('deploy') || 
+        lowerLine.includes('start') ||
+        lowerLine.includes('running')) {
+      return "text-cyan-400";
+    }
+    
+    // Default color
+    return "text-gray-300";
   };
 
   return (
@@ -83,7 +115,7 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
             <div className="bg-black p-4 font-mono text-sm">
               {logLines.length > 0 ? (
                 logLines.map((line: string, index: number) => (
-                  <div key={index} className="mb-1 text-gray-300">
+                  <div key={index} className={`mb-1 ${getLogColor(line)}`}>
                     {line}
                   </div>
                 ))
