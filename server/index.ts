@@ -5,6 +5,7 @@ import pkg from "pg";
 const { Pool } = pkg;
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startBotExpirationChecker } from "./botExpiration";
 
 const app = express();
 
@@ -82,50 +83,10 @@ app.use((req, res, next) => {
   next();
 });
 
-async function startBotExpirationChecker() {
-  log("Starting bot expiration checker...");
-  const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
-  const BOT_EXPIRY_DAYS = 5;
-  const COINS_PER_DEPLOYMENT = 10;
-
-  setInterval(async () => {
-    log("Running bot expiration check...");
-    try {
-      // Get all deployed bots
-      const { rows: bots } = await pool.query("SELECT * FROM deployed_bots");
-
-      for (const bot of bots) {
-        const now = new Date();
-        const deploymentDate = new Date(bot.deployment_date);
-        const timeDiff = now.getTime() - deploymentDate.getTime();
-        const daysDiff = timeDiff / (1000 * 3600 * 24);
-
-        if (daysDiff > BOT_EXPIRY_DAYS) {
-          // Check if user has enough coins for renewal
-          const { rows: [user] } = await pool.query("SELECT coins FROM users WHERE id = $1", [bot.user_id]);
-
-          if (user && user.coins >= COINS_PER_DEPLOYMENT) {
-            // Deduct coins and reset deployment date
-            await pool.query("UPDATE users SET coins = coins - $1 WHERE id = $2", [COINS_PER_DEPLOYMENT, bot.user_id]);
-            await pool.query("UPDATE deployed_bots SET deployment_date = $1 WHERE id = $2", [now.toISOString(), bot.id]);
-            log(`Bot ${bot.id} renewed for user ${bot.user_id}.`);
-          } else {
-            // Delete bot if user has insufficient coins
-            await pool.query("DELETE FROM deployed_bots WHERE id = $1", [bot.id]);
-            log(`Bot ${bot.id} deleted for user ${bot.user_id} due to insufficient coins.`);
-          }
-        }
-      }
-    } catch (error) {
-      log(`Error in bot expiration checker: ${error}`);
-    }
-  }, CHECK_INTERVAL);
-}
-
 (async () => {
   const server = await registerRoutes(app);
 
-  // Start bot expiration checker
+  // Start bot expiration checker (MongoDB-based)
   startBotExpirationChecker();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

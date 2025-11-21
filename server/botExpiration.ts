@@ -14,48 +14,59 @@ export async function checkExpiredBots() {
     const now = new Date();
     
     // Find all bots that have expired
-    const expiredBots = await Bot.find({
-      expiresAt: { $lte: now },
-      status: { $in: ["running", "deploying"] }
-    });
+    let expiredBots;
+    try {
+      expiredBots = await Bot.find({
+        expiresAt: { $lte: now },
+        status: { $in: ["running", "deploying"] }
+      });
+    } catch (mongoError: any) {
+      console.error("MongoDB error while fetching expired bots:", mongoError);
+      return; // Exit early if we can't fetch bots
+    }
 
     console.log(`Found ${expiredBots.length} expired bots to process`);
 
     for (const bot of expiredBots) {
-      const user = await storage.getUser(bot.userId);
-      
-      if (!user) {
-        console.log(`User not found for bot ${bot.herokuAppName}, deleting bot`);
-        await deleteBotAndCleanup(bot);
-        continue;
-      }
-
-      // Check if user has enough coins to renew
-      if (user.coins >= RENEWAL_COST) {
-        // Auto-renew the bot
-        const success = await storage.deductCoins(bot.userId, RENEWAL_COST);
+      try {
+        const user = await storage.getUser(bot.userId);
         
-        if (success) {
-          // Extend expiration by 5 days
-          const newExpiresAt = new Date();
-          newExpiresAt.setDate(newExpiresAt.getDate() + RENEWAL_DAYS);
+        if (!user) {
+          console.log(`User not found for bot ${bot.herokuAppName}, deleting bot`);
+          await deleteBotAndCleanup(bot);
+          continue;
+        }
+
+        // Check if user has enough coins to renew
+        if (user.coins >= RENEWAL_COST) {
+          // Auto-renew the bot
+          const success = await storage.deductCoins(bot.userId, RENEWAL_COST);
           
-          await Bot.findByIdAndUpdate(bot._id, {
-            expiresAt: newExpiresAt
-          });
-          
-          console.log(`Bot ${bot.herokuAppName} renewed for user ${user.email}`);
+          if (success) {
+            // Extend expiration by 5 days
+            const newExpiresAt = new Date();
+            newExpiresAt.setDate(newExpiresAt.getDate() + RENEWAL_DAYS);
+            
+            await Bot.findByIdAndUpdate(bot._id, {
+              expiresAt: newExpiresAt
+            });
+            
+            console.log(`Bot ${bot.herokuAppName} renewed for user ${user.email}`);
+          } else {
+            console.log(`Failed to deduct coins for bot ${bot.herokuAppName}, deleting`);
+            await deleteBotAndCleanup(bot);
+          }
         } else {
-          console.log(`Failed to deduct coins for bot ${bot.herokuAppName}, deleting`);
+          console.log(`User ${user.email} has insufficient coins (${user.coins}/${RENEWAL_COST}) for bot ${bot.herokuAppName}, deleting`);
           await deleteBotAndCleanup(bot);
         }
-      } else {
-        console.log(`User ${user.email} has insufficient coins (${user.coins}/${RENEWAL_COST}) for bot ${bot.herokuAppName}, deleting`);
-        await deleteBotAndCleanup(bot);
+      } catch (botError: any) {
+        console.error(`Error processing bot ${bot.herokuAppName}:`, botError);
+        // Continue processing other bots even if one fails
       }
     }
-  } catch (error) {
-    console.error("Error checking expired bots:", error);
+  } catch (error: any) {
+    console.error("Error in bot expiration checker:", error.message || error);
   }
 }
 
