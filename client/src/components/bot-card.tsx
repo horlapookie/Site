@@ -20,6 +20,7 @@ interface BotCardProps {
   onRestart: (botId: string) => void;
   onDelete: (botId: string) => void;
   onEdit: (botId: string) => void;
+  onAutoMonitorToggle?: () => void;
 }
 
 const statusConfig = {
