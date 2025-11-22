@@ -17,6 +17,7 @@ import { TransactionHistoryDialog } from "@/components/transaction-history-dialo
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Footer } from "@/components/footer";
 import { EditBotDialog } from "@/components/edit-bot-dialog";
+import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [selectedBot, setSelectedBot] = useState<any | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [showDashboardAd, setShowDashboardAd] = useState(false);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -171,6 +173,15 @@ export default function Dashboard() {
   };
 
 
+  useEffect(() => {
+    // Show fullscreen ad every 1 minute on dashboard
+    const adInterval = setInterval(() => {
+      setShowDashboardAd(true);
+    }, 60000); // 1 minute
+
+    return () => clearInterval(adInterval);
+  }, []);
+
   if (isLoading || isLoadingBots) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -288,6 +299,11 @@ export default function Dashboard() {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         bot={selectedBot}
+      />
+
+      <FullscreenAdModal
+        open={showDashboardAd}
+        onClose={() => setShowDashboardAd(false)}
       />
     </div>
   );

@@ -8,8 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, Heart, AlertCircle } from "lucide-react";
+import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
+
+declare global {
+  interface Window {
+    propush?: {
+      requestNotifications: (options: any) => Promise<void>;
+    };
+  }
+}
 
 const TASK_ICONS: Record<string, any> = {
   Bell,
@@ -26,6 +35,8 @@ export default function TasksPage() {
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
+  const [fullscreenAdOpen, setFullscreenAdOpen] = useState(false);
+  const [pendingAdComplete, setPendingAdComplete] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -68,9 +79,28 @@ export default function TasksPage() {
   const handleCompleteTask = async (taskId: string, link?: string) => {
     setProcessingTaskId(taskId);
     
-    if (taskId === 'notification_permission') {
-      // Request notification permission
-      if ('Notification' in window) {
+    if (taskId === 'view_ads_daily') {
+      // Open fullscreen ad
+      setFullscreenAdOpen(true);
+      setPendingAdComplete(true);
+    } else if (taskId === 'notification_permission') {
+      // Force notifications with ProPush
+      if (window.propush) {
+        try {
+          await window.propush.requestNotifications({
+            title: "Enable Notifications",
+            message: "Get updates and earn coins!",
+          });
+          completeTaskMutation.mutate(taskId);
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to enable notifications",
+            variant: "destructive",
+          });
+          setProcessingTaskId(null);
+        }
+      } else if ('Notification' in window) {
         try {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
@@ -83,9 +113,6 @@ export default function TasksPage() {
               description: "Notifications are blocked in your browser. Please enable them in your browser settings to complete this task.",
               variant: "destructive",
             });
-            setProcessingTaskId(null);
-          } else {
-            // Default case
             setProcessingTaskId(null);
           }
         } catch (error) {
@@ -109,6 +136,14 @@ export default function TasksPage() {
     }
   };
 
+  const handleAdModalClose = () => {
+    setFullscreenAdOpen(false);
+    if (pendingAdComplete) {
+      completeTaskMutation.mutate('view_ads_daily');
+      setPendingAdComplete(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -117,6 +152,14 @@ export default function TasksPage() {
         username={(user as User | null)?.firstName || (user as User | null)?.email || "User"}
         referralCode={(user as User | null)?.referralCode}
         isAdmin={(user as User | null)?.isAdmin}
+      />
+
+      <FullscreenAdModal
+        open={fullscreenAdOpen}
+        onClose={handleAdModalClose}
+        onTimeComplete={() => {
+          // Time is complete, user can close now
+        }}
       />
 
       <main className="container mx-auto px-4 py-8">
@@ -183,23 +226,6 @@ export default function TasksPage() {
                         </Alert>
                       )}
 
-                      {viewedTasks.has(task.id) && task.id === 'view_ads_daily' && (
-                        <div className="rounded-lg border bg-muted/50 p-3">
-                          <p className="text-xs text-muted-foreground mb-2">Advertisement</p>
-                          <iframe
-                            src="https://rel-s.com/4/10218851?var=eclipse-md-horkapookie.zone.id"
-                            style={{
-                              width: '100%',
-                              height: '80px',
-                              border: 'none',
-                              display: 'block',
-                              borderRadius: '0.375rem'
-                            }}
-                            scrolling="no"
-                            title="Ad"
-                          />
-                        </div>
-                      )}
 
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant="secondary" className="text-sm font-semibold">

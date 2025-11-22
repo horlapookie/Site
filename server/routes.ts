@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/auth/user/profile", requireAuth, async (req, res) => {
     try {
       const { firstName, lastName } = req.body;
-      const userId = req.userId!;
+      const userId = (req as any).userId!;
 
       const updatedUser = await storage.updateUserProfile(userId, {
         firstName: firstName?.trim() || undefined,
