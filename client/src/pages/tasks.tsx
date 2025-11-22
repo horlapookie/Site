@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {  Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, Heart, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const TASK_ICONS: Record<string, any> = {
   Bell,
@@ -23,11 +24,23 @@ export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
+  const [likedTasks, setLikedTasks] = useState<Set<string>>(new Set());
+  const [notificationBlocked, setNotificationBlocked] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
     enabled: !!user,
   });
+
+  const toggleLikeTask = (taskId: string) => {
+    const newLiked = new Set(likedTasks);
+    if (newLiked.has(taskId)) {
+      newLiked.delete(taskId);
+    } else {
+      newLiked.add(taskId);
+    }
+    setLikedTasks(newLiked);
+  };
 
   const completeTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
@@ -58,13 +71,27 @@ export default function TasksPage() {
     if (taskId === 'notification_permission') {
       // Request notification permission
       if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          completeTaskMutation.mutate(taskId);
-        } else {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            setNotificationBlocked(false);
+            completeTaskMutation.mutate(taskId);
+          } else if (permission === 'denied') {
+            setNotificationBlocked(true);
+            toast({
+              title: "Notifications Blocked",
+              description: "Notifications are blocked in your browser. Please enable them in your browser settings to complete this task.",
+              variant: "destructive",
+            });
+            setProcessingTaskId(null);
+          } else {
+            // Default case
+            setProcessingTaskId(null);
+          }
+        } catch (error) {
           toast({
-            title: "Permission Denied",
-            description: "Please allow notifications to complete this task",
+            title: "Error",
+            description: "Failed to request notification permission",
             variant: "destructive",
           });
           setProcessingTaskId(null);
@@ -108,6 +135,9 @@ export default function TasksPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {(tasks as any[])?.map((task: any) => {
               const IconComponent = TASK_ICONS[task.icon] || Bell;
+              const isLiked = likedTasks.has(task.id);
+              const isNotificationTask = task.id === 'notification_permission';
+              
               return (
                 <Card key={task.id} className={task.completed ? "bg-muted/50" : ""} data-testid={`card-task-${task.id}`}>
                   <CardHeader>
@@ -145,7 +175,16 @@ export default function TasksPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between">
+                      {notificationBlocked && isNotificationTask && (
+                        <Alert variant="destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Notifications are blocked. Please enable notifications in your browser settings (usually in the address bar icon menu) and try again.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2">
                         <Badge variant="secondary" className="text-sm font-semibold">
                           +{task.reward} Coins
                         </Badge>
@@ -156,15 +195,28 @@ export default function TasksPage() {
                             Completed
                           </Badge>
                         ) : task.canComplete ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleCompleteTask(task.id, task.link)}
-                            disabled={processingTaskId === task.id}
-                            data-testid={`button-complete-${task.id}`}
-                          >
-                            {task.link && <ExternalLink className="mr-2 h-4 w-4" />}
-                            {processingTaskId === task.id ? "Processing..." : "Complete"}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant={isLiked ? "default" : "outline"}
+                              onClick={() => toggleLikeTask(task.id)}
+                              data-testid={`button-like-${task.id}`}
+                              className="w-10"
+                            >
+                              <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+                            </Button>
+                            {isLiked && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleCompleteTask(task.id, task.link)}
+                                disabled={processingTaskId === task.id}
+                                data-testid={`button-complete-${task.id}`}
+                              >
+                                {task.link && <ExternalLink className="mr-2 h-4 w-4" />}
+                                {processingTaskId === task.id ? "Processing..." : "Complete"}
+                              </Button>
+                            )}
+                          </div>
                         ) : (
                           <Button size="sm" variant="outline" disabled>
                             Not Available
