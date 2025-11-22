@@ -45,7 +45,13 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header isAuthenticated={true} isAdmin={user.isAdmin} />
+      <Header 
+        isAuthenticated={true} 
+        isAdmin={user.isAdmin}
+        coins={user.coins}
+        username={user.firstName || user.email}
+        referralCode={user.referralCode}
+      />
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">
