@@ -24,7 +24,7 @@ export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
-  const [likedTasks, setLikedTasks] = useState<Set<string>>(new Set());
+  const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
@@ -32,14 +32,14 @@ export default function TasksPage() {
     enabled: !!user,
   });
 
-  const toggleLikeTask = (taskId: string) => {
-    const newLiked = new Set(likedTasks);
-    if (newLiked.has(taskId)) {
-      newLiked.delete(taskId);
+  const toggleViewTask = (taskId: string) => {
+    const newViewed = new Set(viewedTasks);
+    if (newViewed.has(taskId)) {
+      newViewed.delete(taskId);
     } else {
-      newLiked.add(taskId);
+      newViewed.add(taskId);
     }
-    setLikedTasks(newLiked);
+    setViewedTasks(newViewed);
   };
 
   const completeTaskMutation = useMutation({
@@ -184,6 +184,24 @@ export default function TasksPage() {
                         </Alert>
                       )}
 
+                      {viewedTasks.has(task.id) && task.id === 'view_ads_daily' && (
+                        <div className="rounded-lg border bg-muted/50 p-3">
+                          <p className="text-xs text-muted-foreground mb-2">Advertisement</p>
+                          <iframe
+                            src="https://rel-s.com/4/10218851?var=eclipse-md-horkapookie.zone.id"
+                            style={{
+                              width: '100%',
+                              height: '80px',
+                              border: 'none',
+                              display: 'block',
+                              borderRadius: '0.375rem'
+                            }}
+                            scrolling="no"
+                            title="Ad"
+                          />
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant="secondary" className="text-sm font-semibold">
                           +{task.reward} Coins
@@ -198,14 +216,13 @@ export default function TasksPage() {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              variant={isLiked ? "default" : "outline"}
-                              onClick={() => toggleLikeTask(task.id)}
-                              data-testid={`button-like-${task.id}`}
-                              className="w-10"
+                              variant={viewedTasks.has(task.id) ? "default" : "outline"}
+                              onClick={() => toggleViewTask(task.id)}
+                              data-testid={`button-view-${task.id}`}
                             >
-                              <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+                              {viewedTasks.has(task.id) ? "Close" : "View Task"}
                             </Button>
-                            {isLiked && (
+                            {viewedTasks.has(task.id) && (
                               <Button
                                 size="sm"
                                 onClick={() => handleCompleteTask(task.id, task.link)}
