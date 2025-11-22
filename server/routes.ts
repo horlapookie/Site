@@ -637,45 +637,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = 20;
       const skip = (page - 1) * limit;
       
-      // Get total count
-      const totalUsers = await User.countDocuments();
-      
-      // Get users with pagination
+      // Get users with pagination (only get unique emails to avoid duplicates)
       const users = await User.find({})
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean() as any[];
 
-      // Get all user IDs on this page
+      // Get total count of users
+      const totalUsers = await User.countDocuments();
+      
+      // Get all user IDs on this page and convert to strings for comparison
       const userIds = users.map(u => u._id.toString());
       
       // Get bot counts for all users in one aggregation query
       const botCounts = await Bot.aggregate([
         { $match: { userId: { $in: userIds } } },
         { $group: { _id: "$userId", count: { $sum: 1 } } }
-      ]);
+      ]) as any[];
       
-      // Create a map for quick lookup
-      const botCountMap = botCounts.reduce((acc, item) => {
-        acc[item._id] = item.count;
-        return acc;
-      }, {} as Record<string, number>);
+      // Create a map for quick lookup - handle both ObjectId and string formats
+      const botCountMap: Record<string, number> = {};
+      botCounts.forEach(item => {
+        const key = typeof item._id === 'string' ? item._id : item._id.toString();
+        botCountMap[key] = item.count;
+      });
       
       // Map users with bot count
-      const usersWithBotCount = users.map(user => ({
-        id: user._id.toString(),
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        coins: user.coins,
-        isAdmin: user.isAdmin,
-        referralCode: user.referralCode,
-        referralCount: user.referralCount,
-        autoMonitor: user.autoMonitor,
-        createdAt: user.createdAt,
-        botCount: botCountMap[user._id.toString()] || 0
-      }));
+      const usersWithBotCount = users.map(user => {
+        const userId = user._id.toString();
+        return {
+          id: userId,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          coins: user.coins,
+          isAdmin: user.isAdmin,
+          referralCode: user.referralCode,
+          referralCount: user.referralCount,
+          autoMonitor: user.autoMonitor,
+          createdAt: user.createdAt,
+          botCount: botCountMap[userId] || 0
+        };
+      });
       
       res.json({
         users: usersWithBotCount,
