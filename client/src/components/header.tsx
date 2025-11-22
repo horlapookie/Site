@@ -79,7 +79,7 @@ export function Header({ isAuthenticated = false, coins = 0, username = "User", 
                     <div className="flex items-center gap-1">
                       <p className="text-sm font-medium leading-none">{username}</p>
                       {isAdmin && (
-                        <BadgeCheck className="h-4 w-4 text-blue-500" title="Verified Admin" />
+                        <BadgeCheck className="h-4 w-4 text-blue-500" aria-label="Verified Admin" />
                       )}
                     </div>
                     <p className="text-xs leading-none text-muted-foreground">

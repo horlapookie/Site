@@ -48,7 +48,7 @@ export class MongoStorage implements IStorage {
   private claimCount = new Map<string, { date: string; count: number }>();
 
   async getUser(id: string): Promise<any | undefined> {
-    const user = await User.findById(id).lean();
+    const user = await User.findById(id).lean() as any as any;
     if (!user) return undefined;
     
     return {
@@ -71,7 +71,7 @@ export class MongoStorage implements IStorage {
   }
 
   async getUserByReferralCode(referralCode: string): Promise<any | undefined> {
-    const user = await User.findOne({ referralCode }).lean();
+    const user = await User.findOne({ referralCode }).lean() as any as any;
     if (!user) return undefined;
     
     return {
@@ -94,7 +94,7 @@ export class MongoStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<any | undefined> {
-    const user = await User.findOne({ email }).lean();
+    const user = await User.findOne({ email }).lean() as any as any;
     if (!user) return undefined;
     
     return {
@@ -162,7 +162,7 @@ export class MongoStorage implements IStorage {
         },
       },
       { upsert: true, new: true }
-    ).lean();
+    ).lean() as any;
 
     return {
       id: user._id.toString(),
@@ -399,7 +399,7 @@ export class MongoStorage implements IStorage {
     const transactions = await Transaction.find({ userId })
       .sort({ createdAt: -1 })
       .limit(limit)
-      .lean();
+      .lean() as any;
 
     return transactions.map((t) => ({
       id: t._id.toString(),
@@ -417,7 +417,7 @@ export class MongoStorage implements IStorage {
       id,
       { $set: updates },
       { new: true }
-    ).lean();
+    ).lean() as any;
 
     if (!user) return undefined;
 
@@ -445,7 +445,7 @@ export class MongoStorage implements IStorage {
       id,
       { $set: { autoMonitor } },
       { new: true }
-    ).lean();
+    ).lean() as any;
 
     if (!user) return undefined;
 
@@ -473,7 +473,7 @@ export class MongoStorage implements IStorage {
   }
 
   async getAllUsers(): Promise<any[]> {
-    const users = await User.find({}).lean();
+    const users = await User.find({}).lean() as any;
     return users.map((user) => ({
       id: user._id.toString(),
       email: user.email,
@@ -512,12 +512,12 @@ export class MongoStorage implements IStorage {
 
   async getTaskCompletion(userId: string, taskId: string): Promise<any | null> {
     const TaskCompletion = (await import("./models/TaskCompletion")).default;
-    return await TaskCompletion.findOne({ userId, taskId }).lean();
+    return await TaskCompletion.findOne({ userId, taskId }).lean() as any;
   }
 
   async getTaskCompletions(userId: string): Promise<any[]> {
     const TaskCompletion = (await import("./models/TaskCompletion")).default;
-    return await TaskCompletion.find({ userId }).lean();
+    return await TaskCompletion.find({ userId }).lean() as any;
   }
 
   async completeTask(userId: string, taskId: string, metadata?: any): Promise<boolean> {
