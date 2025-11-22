@@ -33,12 +33,12 @@ export default function AdminPage() {
     );
   }
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats = { bots: { total: 0, running: 0, failed: 0, deploying: 0 }, users: 0 }, isLoading: statsLoading } = useQuery<any>({
     queryKey: ["/api/admin/stats"],
     enabled: !!user?.isAdmin,
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: !!user?.isAdmin,
   });
