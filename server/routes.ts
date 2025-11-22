@@ -650,12 +650,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all user IDs for this page (keep as ObjectID for MongoDB)
       const userIds = users.map(u => u._id);
       
-      // Get bot counts for all users using aggregation with ObjectID matching
+      // Get bot counts for all users using aggregation with proper type conversion
       const botCounts = await Bot.aggregate([
         { 
           $match: { 
             userId: { 
-              $in: userIds 
+              $in: userIds.map(id => id.toString()) 
             } 
           } 
         },
@@ -670,9 +670,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create a map for quick lookup
       const botCountMap: Record<string, number> = {};
       botCounts.forEach((item: any) => {
-        const key = item._id.toString();
+        const key = String(item._id);
         botCountMap[key] = item.count;
-        console.log(`Aggregation found: ${key} = ${item.count} bots`);
       });
       
       // Map users with bot count
