@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, type User } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -159,7 +159,7 @@ export default function Dashboard() {
 
   const handleAutoMonitorToggle = async (botId: string, currentStatus: boolean) => {
     const deductionAmount = 15; // 15 coins for monitoring
-    if (!currentStatus && (user?.coins ?? 0) < deductionAmount) {
+    if (!currentStatus && ((user as User | null)?.coins ?? 0) < deductionAmount) {
       toast({
         title: "Insufficient Coins",
         description: `You need at least ${deductionAmount} coins to enable auto-monitor.`,
@@ -183,10 +183,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header
         isAuthenticated={true}
-        coins={user?.coins ?? 0}
-        username={user?.firstName ?? "User"}
-        referralCode={user?.referralCode}
-        isAdmin={user?.isAdmin}
+        coins={(user as User | null)?.coins ?? 0}
+        username={(user as User | null)?.firstName ?? "User"}
+        referralCode={(user as User | null)?.referralCode}
+        isAdmin={(user as User | null)?.isAdmin}
         onSignOut={handleSignOut}
         onClaimCoins={() => setShowClaimDialog(true)}
         onTransferCoins={() => setShowTransferDialog(true)}
@@ -214,9 +214,9 @@ export default function Dashboard() {
       <SettingsDialog
         open={showSettingsDialog}
         onOpenChange={setShowSettingsDialog}
-        currentFirstName={user?.firstName}
-        currentLastName={user?.lastName}
-        autoMonitor={user?.autoMonitor}
+        currentFirstName={(user as User | null)?.firstName}
+        currentLastName={(user as User | null)?.lastName}
+        autoMonitor={(user as User | null)?.autoMonitor}
       />
 
       <main className="container px-4 py-8 md:px-6">

@@ -1,8 +1,22 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+export interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  coins: number;
+  referralCode: string;
+  referredBy?: string;
+  referralCount: number;
+  autoMonitor: number;
+  isAdmin: boolean;
+  profileImageUrl?: string;
+}
+
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery({
+  const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchInterval: false,

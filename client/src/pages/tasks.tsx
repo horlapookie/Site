@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, type User } from "@/hooks/useAuth";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,10 +86,10 @@ export default function TasksPage() {
     <div className="min-h-screen bg-background">
       <Header
         isAuthenticated={true}
-        coins={user?.coins || 0}
-        username={user?.firstName || user?.email || "User"}
-        referralCode={user?.referralCode}
-        isAdmin={user?.isAdmin}
+        coins={(user as User | null)?.coins || 0}
+        username={(user as User | null)?.firstName || (user as User | null)?.email || "User"}
+        referralCode={(user as User | null)?.referralCode}
+        isAdmin={(user as User | null)?.isAdmin}
       />
 
       <main className="container mx-auto px-4 py-8">
@@ -106,7 +106,7 @@ export default function TasksPage() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {tasks?.map((task: any) => {
+            {(tasks as any[])?.map((task: any) => {
               const IconComponent = TASK_ICONS[task.icon] || Bell;
               return (
                 <Card key={task.id} className={task.completed ? "bg-muted/50" : ""} data-testid={`card-task-${task.id}`}>
