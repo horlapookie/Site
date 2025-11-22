@@ -652,7 +652,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get bot counts for all users using aggregation with ObjectID matching
       const botCounts = await Bot.aggregate([
-        { $match: { userId: { $in: userIds.map((id: any) => id.toString()) } } },
+        { 
+          $match: { 
+            userId: { 
+              $in: userIds 
+            } 
+          } 
+        },
         { 
           $group: { 
             _id: "$userId", 
@@ -666,6 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       botCounts.forEach((item: any) => {
         const key = item._id.toString();
         botCountMap[key] = item.count;
+        console.log(`Aggregation found: ${key} = ${item.count} bots`);
       });
       
       // Map users with bot count
