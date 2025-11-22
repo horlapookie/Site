@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/header";
@@ -21,6 +22,7 @@ const TASK_ICONS: Record<string, any> = {
 export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -38,6 +40,7 @@ export default function TasksPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setProcessingTaskId(null);
     },
     onError: (error: Error) => {
       toast({
@@ -45,10 +48,13 @@ export default function TasksPage() {
         description: error.message || "Failed to complete task",
         variant: "destructive",
       });
+      setProcessingTaskId(null);
     },
   });
 
   const handleCompleteTask = async (taskId: string, link?: string) => {
+    setProcessingTaskId(taskId);
+    
     if (taskId === 'notification_permission') {
       // Request notification permission
       if ('Notification' in window) {
@@ -61,6 +67,7 @@ export default function TasksPage() {
             description: "Please allow notifications to complete this task",
             variant: "destructive",
           });
+          setProcessingTaskId(null);
         }
       }
     } else if (link) {
@@ -152,11 +159,11 @@ export default function TasksPage() {
                           <Button
                             size="sm"
                             onClick={() => handleCompleteTask(task.id, task.link)}
-                            disabled={completeTaskMutation.isPending}
+                            disabled={processingTaskId === task.id}
                             data-testid={`button-complete-${task.id}`}
                           >
                             {task.link && <ExternalLink className="mr-2 h-4 w-4" />}
-                            {completeTaskMutation.isPending ? "Processing..." : "Complete"}
+                            {processingTaskId === task.id ? "Processing..." : "Complete"}
                           </Button>
                         ) : (
                           <Button size="sm" variant="outline" disabled>
