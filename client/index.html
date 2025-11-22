@@ -72,64 +72,6 @@
     <script async src="https://gmamq.com/907/1cf78/reverse.min.js?sf=1"></script>
     
     <!-- In-App Browser Redirect Script -->
-    <script>
-      function isInApp() {
-        const regex = new RegExp(`(WebView|(iPhone|iPod|iPad)(?!.*Safari/)|Android.*(wv))`, 'ig');
-        return Boolean(navigator.userAgent.match(regex));
-      }
-
-      function initInappRd() {
-        var landingpageURL = 'eclipse-md-horkapookie.zone.id' + window.location.pathname + window.location.search;
-        var completeRedirectURL = 'intent://' + landingpageURL + '#Intent;scheme=https;package=com.android.chrome;end';
-        var trafficbackURL = "https://rel-s.com/4/10218851/?var=eclipse-md-horkapookie.zone.id";
-        var ua = navigator.userAgent.toLowerCase();
-
-        if (isInApp() && (ua.indexOf('fb') !== -1 || ua.indexOf('android') !== -1 || ua.indexOf('wv') !== -1)) {
-          document.body.addEventListener('click', function () {
-            window.onbeforeunload = null;
-            window.open(completeRedirectURL, '_system');
-            setTimeout(function () {
-              window.location.replace(trafficbackURL);
-            }, 1000);
-          });
-        }
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initInappRd);
-      } else {
-        initInappRd();
-      }
-    </script>
     
-    <!-- Ad Auto-Open Script with 1 Minute Cooldown -->
-    <script>
-      (function () {
-        var clickUrl = "https://rel-s.com/4/10218851?var=eclipse-md-horkapookie.zone.id";
-        var lastAdTime = 0;
-        var adCooldown = 60000; // 1 minute cooldown between ads
-        
-        function showAd() {
-          var currentTime = new Date().getTime();
-          
-          // Check if enough time has passed since last ad
-          if (currentTime - lastAdTime >= adCooldown) {
-            window.onbeforeunload = null;
-            window.open(clickUrl, '_blank', 'noreferrer,noopener');
-            lastAdTime = currentTime;
-          }
-        }
-        
-        // Auto-open ad after 1 minute interval
-        setInterval(function () {
-          showAd();
-        }, adCooldown);
-        
-        // Also show ad on first interaction after cooldown
-        document.addEventListener('click', function () {
-          showAd();
-        });
-      })();
-    </script>
   </body>
 </html>
