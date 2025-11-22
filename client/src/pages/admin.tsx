@@ -38,7 +38,7 @@ export default function AdminPage() {
     enabled: !!user?.isAdmin,
   });
 
-  const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
+  const { data: usersData = { users: [], pagination: { total: 0, pages: 0, page: 1 } }, isLoading: usersLoading } = useQuery<any>({
     queryKey: ["/api/admin/users"],
     enabled: !!user?.isAdmin,
   });
@@ -205,7 +205,7 @@ export default function AdminPage() {
                 </CardDescription>
               </div>
               <Badge variant="secondary" data-testid="badge-total-users">
-                {users?.length || 0} users
+                {usersData?.pagination?.total || 0} users
               </Badge>
             </div>
           </CardHeader>
@@ -229,8 +229,8 @@ export default function AdminPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users && users.length > 0 ? (
-                      users.map((user: any) => (
+                    {usersData?.users && usersData.users.length > 0 ? (
+                      usersData.users.map((user: any) => (
                         <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
                           <TableCell className="font-medium">
                             {user.email}

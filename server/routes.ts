@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { connectDB } from "./mongodb";
 import Bot from "./models/Bot";
-import { botDeploymentSchema, type User } from "@shared/schema";
+import User from "./models/User";
+import { botDeploymentSchema, type User as UserType } from "@shared/schema";
 import { createHerokuApp, updateHerokuApp, getAppLogs, restartApp, deleteApp } from "./herokuService";
 import { generateToken, verifyToken, getUserId as getAuthUserId } from "./auth";
 
@@ -35,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Helper function to remove password from user object before sending to client
-  const sanitizeUser = (user: User) => {
+  const sanitizeUser = (user: UserType) => {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   };
@@ -629,31 +630,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all users with their details (admin only)
+  // Get all users with their details (admin only) - with pagination
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      const usersWithBotCount = await Promise.all(
-        users.map(async (user) => {
-          const botCount = await Bot.countDocuments({ userId: user.id });
-          // Explicitly exclude password field
-          return {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            coins: user.coins,
-            isAdmin: user.isAdmin,
-            referralCode: user.referralCode,
-            referralCount: user.referralCount,
-            autoMonitor: user.autoMonitor,
-            createdAt: user.createdAt,
-            botCount
-          };
-        })
-      );
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = 20;
+      const skip = (page - 1) * limit;
       
-      res.json(usersWithBotCount);
+      // Get total count
+      const totalUsers = await User.countDocuments();
+      
+      // Get users with pagination
+      const users = await User.find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean() as any[];
+
+      // Get all user IDs on this page
+      const userIds = users.map(u => u._id.toString());
+      
+      // Get bot counts for all users in one aggregation query
+      const botCounts = await Bot.aggregate([
+        { $match: { userId: { $in: userIds } } },
+        { $group: { _id: "$userId", count: { $sum: 1 } } }
+      ]);
+      
+      // Create a map for quick lookup
+      const botCountMap = botCounts.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      // Map users with bot count
+      const usersWithBotCount = users.map(user => ({
+        id: user._id.toString(),
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        coins: user.coins,
+        isAdmin: user.isAdmin,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount,
+        autoMonitor: user.autoMonitor,
+        createdAt: user.createdAt,
+        botCount: botCountMap[user._id.toString()] || 0
+      }));
+      
+      res.json({
+        users: usersWithBotCount,
+        pagination: {
+          page,
+          limit,
+          total: totalUsers,
+          pages: Math.ceil(totalUsers / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
