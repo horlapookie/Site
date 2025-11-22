@@ -135,7 +135,6 @@ export default function TasksPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {(tasks as any[])?.map((task: any) => {
               const IconComponent = TASK_ICONS[task.icon] || Bell;
-              const isLiked = likedTasks.has(task.id);
               const isNotificationTask = task.id === 'notification_permission';
               
               return (
