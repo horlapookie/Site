@@ -758,8 +758,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'watch_5_ads',
           title: 'Watch 5 Ads',
-          description: 'Watch 5 advertisements to earn 5 coins',
-          reward: 5,
+          description: 'Watch 5 advertisements for 5 seconds each to earn 4 coins',
+          reward: 4,
           icon: 'Video',
           completed: watch5Progress >= 5,
           canComplete: watch5Progress < 5,
@@ -769,8 +769,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'watch_10_ads',
           title: 'Watch 10 Ads',
-          description: 'Watch 10 advertisements to earn 12 coins',
-          reward: 12,
+          description: 'Watch 10 advertisements to earn 8 coins',
+          reward: 8,
           icon: 'Video',
           completed: watch10Progress >= 10,
           canComplete: watch10Progress < 10,
@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           icon: 'MessageCircle',
           completed: completedTasks.some(t => t.taskId === 'whatsapp_follow'),
           canComplete: !completedTasks.some(t => t.taskId === 'whatsapp_follow'),
-          link: 'https://whatsapp.com/channel/0029VarnKCp2YlEkLSeF2M0F',
+          link: 'https://whatsapp.com/channel/0029VaIiMsqJf05e4Y4b9u0z',
         },
         {
           id: 'telegram_follow',
@@ -805,6 +805,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           icon: 'Users',
           completed: completedTasks.some(t => t.taskId === 'referral_milestone'),
           canComplete: (user.referralCount || 0) >= 5 && !completedTasks.some(t => t.taskId === 'referral_milestone'),
+        },
+        {
+          id: 'fork_repo',
+          title: 'Fork Bot Repository',
+          description: 'Fork the Eclipse-MD bot repository on GitHub to earn 2 coins',
+          reward: 2,
+          icon: 'GitFork',
+          completed: completedTasks.some(t => t.taskId === 'fork_repo'),
+          canComplete: !completedTasks.some(t => t.taskId === 'fork_repo'),
+          link: 'https://github.com/horlapookie/fork',
         },
       ];
 
@@ -904,8 +914,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         whatsapp_follow: 1,
         telegram_follow: 1,
         referral_milestone: 2,
-        watch_5_ads: 5,
-        watch_10_ads: 12,
+        watch_5_ads: 4,
+        watch_10_ads: 8,
+        fork_repo: 2,
       };
 
       const reward = rewards[taskId] || 0;
