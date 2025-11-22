@@ -11,11 +11,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
+import { SubscribeBanner } from "@/components/subscribe-banner";
 
 declare global {
   interface Window {
     propush?: {
       requestNotifications: (options: any) => Promise<void>;
+      pushSubscribe: (options: {
+        type: string;
+        position?: string;
+      }) => Promise<void>;
     };
   }
 }
@@ -273,6 +278,8 @@ export default function TasksPage() {
           </div>
         )}
       </main>
+      
+      <SubscribeBanner />
     </div>
   );
 }

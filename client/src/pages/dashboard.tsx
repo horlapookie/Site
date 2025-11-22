@@ -18,6 +18,7 @@ import { SettingsDialog } from "@/components/settings-dialog";
 import { Footer } from "@/components/footer";
 import { EditBotDialog } from "@/components/edit-bot-dialog";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
+import { SubscribeBanner } from "@/components/subscribe-banner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -297,6 +298,8 @@ export default function Dashboard() {
         open={showDashboardAd}
         onClose={() => setShowDashboardAd(false)}
       />
+      
+      <SubscribeBanner />
     </div>
   );
 }
