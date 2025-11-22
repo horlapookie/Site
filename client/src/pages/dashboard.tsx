@@ -16,6 +16,7 @@ import { TransferCoinsDialog } from "@/components/transfer-coins-dialog";
 import { TransactionHistoryDialog } from "@/components/transaction-history-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Footer } from "@/components/footer";
+import { EditBotDialog } from "@/components/edit-bot-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
