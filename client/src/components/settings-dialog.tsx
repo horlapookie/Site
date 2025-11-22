@@ -164,7 +164,7 @@ export function SettingsDialog({
                     Auto-Monitor Bots
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Automatically restart your bots when they go offline (15 coins per restart)
+                    Automatically restart your bots when they go offline (FREE service)
                   </p>
                 </div>
                 <Switch
@@ -178,7 +178,7 @@ export function SettingsDialog({
             </div>
             <div className="rounded-lg bg-muted/50 p-4">
               <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> When enabled, the system will check your bots every 10 minutes and automatically restart any that are offline. Each restart costs 15 coins.
+                <strong>Note:</strong> When enabled, the system will check your bots every 10 minutes and automatically restart any that are offline. This is a FREE service for all users!
               </p>
             </div>
           </TabsContent>

@@ -79,7 +79,7 @@ export default function TasksPage() {
   const handleCompleteTask = async (taskId: string, link?: string) => {
     setProcessingTaskId(taskId);
     
-    if (taskId === 'view_ads_daily') {
+    if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
       // Open fullscreen ad
       setFullscreenAdOpen(true);
       setPendingAdComplete(true);
@@ -138,8 +138,8 @@ export default function TasksPage() {
 
   const handleAdModalClose = () => {
     setFullscreenAdOpen(false);
-    if (pendingAdComplete) {
-      completeTaskMutation.mutate('view_ads_daily');
+    if (pendingAdComplete && processingTaskId) {
+      completeTaskMutation.mutate(processingTaskId);
       setPendingAdComplete(false);
     }
   };

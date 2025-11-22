@@ -99,7 +99,7 @@ export default function Dashboard() {
       const action = variables.enable ? "enabled" : "disabled";
       toast({
         title: "Success",
-        description: `Auto-monitor ${action} successfully. ${data.deduction} coins deducted.`,
+        description: `Auto-monitor ${action} successfully. This is a FREE service!`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -160,24 +160,16 @@ export default function Dashboard() {
   };
 
   const handleAutoMonitorToggle = async (botId: string, currentStatus: boolean) => {
-    const deductionAmount = 15; // 15 coins for monitoring
-    if (!currentStatus && ((user as User | null)?.coins ?? 0) < deductionAmount) {
-      toast({
-        title: "Insufficient Coins",
-        description: `You need at least ${deductionAmount} coins to enable auto-monitor.`,
-        variant: "destructive",
-      });
-      return;
-    }
+    // Auto-monitor is now FREE - no coin check needed
     await enableAutoMonitorMutation.mutateAsync({ botId, enable: !currentStatus });
   };
 
 
   useEffect(() => {
-    // Show fullscreen ad every 1 minute on dashboard
+    // Show fullscreen ad every 30 seconds on dashboard
     const adInterval = setInterval(() => {
       setShowDashboardAd(true);
-    }, 60000); // 1 minute
+    }, 30000); // 30 seconds
 
     return () => clearInterval(adInterval);
   }, []);

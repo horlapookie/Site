@@ -4,13 +4,12 @@ import { storage } from "./storage";
 import { restartApp } from "./herokuService";
 
 const MONITOR_INTERVAL = 10 * 60 * 1000; // 10 minutes
-const MONITOR_COST = 5; // 5 coins per restart
 
 async function checkAndRestartBots() {
   try {
     console.log("Running auto-monitor check...");
     
-    // Get all users with auto-monitor enabled
+    // Get all deployed bots that are stopped or failed
     const Bot = (await import("./models/Bot")).default;
     const bots = await Bot.find({ status: { $in: ["stopped", "failed"] } });
     
@@ -18,20 +17,13 @@ async function checkAndRestartBots() {
       try {
         const user = await storage.getUser(bot.userId);
         
-        // Skip if user doesn't have auto-monitor enabled
-        if (!user || user.autoMonitor !== 1) {
-          continue;
-        }
-
-        // Check if user has enough coins
-        if (user.coins < MONITOR_COST) {
-          console.log(`User ${user.email} has insufficient coins (${user.coins}/${MONITOR_COST}) for auto-monitor, skipping bot ${bot.herokuAppName}`);
+        if (!user) {
           continue;
         }
         
         console.log(`Auto-monitor: Attempting to restart bot ${bot.herokuAppName} for user ${user.email}`);
         
-        // Try to restart the bot
+        // Try to restart the bot (FREE - no coin deduction)
         try {
           await restartApp(bot.herokuAppName);
           
@@ -40,13 +32,8 @@ async function checkAndRestartBots() {
             status: "running"
           });
 
-          // Deduct coins for the restart
-          const deducted = await storage.deductCoins(bot.userId, MONITOR_COST);
-          if (deducted) {
-            console.log(`Auto-monitor: Successfully restarted bot ${bot.herokuAppName} and deducted ${MONITOR_COST} coins`);
-          } else {
-            console.log(`Auto-monitor: Bot ${bot.herokuAppName} restarted but failed to deduct coins`);
-          }
+          console.log(`Auto-monitor: Successfully restarted bot ${bot.herokuAppName} (FREE service)`);
+
         } catch (restartError: any) {
           console.error(`Auto-monitor: Failed to restart bot ${bot.herokuAppName}:`, restartError.message);
           

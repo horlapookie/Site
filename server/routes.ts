@@ -728,12 +728,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adTask = completedTasks.find(t => t.taskId === 'view_ads_daily');
       const adsWatchedToday = adTask?.metadata?.lastAdWatchDate === today ? (adTask.metadata.adsWatchedToday || 0) : 0;
 
+      const watch5Task = completedTasks.find(t => t.taskId === 'watch_5_ads');
+      const watch5Progress = watch5Task?.metadata?.adsWatched || 0;
+
+      const watch10Task = completedTasks.find(t => t.taskId === 'watch_10_ads');
+      const watch10Progress = watch10Task?.metadata?.adsWatched || 0;
+
       const tasks = [
         {
           id: 'notification_permission',
           title: 'Enable Notifications',
-          description: 'Allow site notifications to earn 2 coins',
-          reward: 2,
+          description: 'Allow site notifications to earn 3 coins',
+          reward: 3,
           icon: 'Bell',
           completed: completedTasks.some(t => t.taskId === 'notification_permission'),
           canComplete: !completedTasks.some(t => t.taskId === 'notification_permission'),
@@ -748,6 +754,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           canComplete: adsWatchedToday < 10,
           dailyLimit: 10,
           dailyProgress: adsWatchedToday,
+        },
+        {
+          id: 'watch_5_ads',
+          title: 'Watch 5 Ads',
+          description: 'Watch 5 advertisements to earn 5 coins',
+          reward: 5,
+          icon: 'Video',
+          completed: watch5Progress >= 5,
+          canComplete: watch5Progress < 5,
+          dailyLimit: 5,
+          dailyProgress: watch5Progress,
+        },
+        {
+          id: 'watch_10_ads',
+          title: 'Watch 10 Ads',
+          description: 'Watch 10 advertisements to earn 12 coins',
+          reward: 12,
+          icon: 'Video',
+          completed: watch10Progress >= 10,
+          canComplete: watch10Progress < 10,
+          dailyLimit: 10,
+          dailyProgress: watch10Progress,
         },
         {
           id: 'whatsapp_follow',
@@ -777,15 +805,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           icon: 'Users',
           completed: completedTasks.some(t => t.taskId === 'referral_milestone'),
           canComplete: (user.referralCount || 0) >= 5 && !completedTasks.some(t => t.taskId === 'referral_milestone'),
-        },
-        {
-          id: 'watch_ads_video',
-          title: 'Watch 3 Video Ads',
-          description: 'Watch 3 video advertisements to earn 2 coins',
-          reward: 2,
-          icon: 'Video',
-          completed: completedTasks.some(t => t.taskId === 'watch_ads_video'),
-          canComplete: !completedTasks.some(t => t.taskId === 'watch_ads_video'),
         },
       ];
 
@@ -830,6 +849,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastAdWatchDate: today,
           });
         }
+      } else if (taskId === 'watch_5_ads') {
+        const adsWatched = existingCompletion?.metadata?.adsWatched || 0;
+        
+        if (adsWatched >= 5) {
+          return res.status(400).json({ message: "Task already completed" });
+        }
+
+        const newCount = adsWatched + 1;
+        if (existingCompletion) {
+          await storage.updateTaskMetadata(userId, taskId, {
+            adsWatched: newCount,
+          });
+        } else {
+          await storage.completeTask(userId, taskId, {
+            adsWatched: newCount,
+          });
+        }
+      } else if (taskId === 'watch_10_ads') {
+        const adsWatched = existingCompletion?.metadata?.adsWatched || 0;
+        
+        if (adsWatched >= 10) {
+          return res.status(400).json({ message: "Task already completed" });
+        }
+
+        const newCount = adsWatched + 1;
+        if (existingCompletion) {
+          await storage.updateTaskMetadata(userId, taskId, {
+            adsWatched: newCount,
+          });
+        } else {
+          await storage.completeTask(userId, taskId, {
+            adsWatched: newCount,
+          });
+        }
       } else {
         if (existingCompletion) {
           return res.status(400).json({ message: "Task already completed" });
@@ -846,12 +899,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const rewards: Record<string, number> = {
-        notification_permission: 2,
+        notification_permission: 3,
         view_ads_daily: 1,
         whatsapp_follow: 1,
         telegram_follow: 1,
         referral_milestone: 2,
-        watch_ads_video: 2,
+        watch_5_ads: 5,
+        watch_10_ads: 12,
       };
 
       const reward = rewards[taskId] || 0;

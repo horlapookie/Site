@@ -59,16 +59,18 @@ export const TASKS = {
   WHATSAPP_FOLLOW: 'whatsapp_follow',
   TELEGRAM_FOLLOW: 'telegram_follow',
   REFERRAL_MILESTONE: 'referral_milestone',
-  WATCH_ADS_VIDEO: 'watch_ads_video',
+  WATCH_5_ADS: 'watch_5_ads',
+  WATCH_10_ADS: 'watch_10_ads',
 } as const;
 
 export const TASK_REWARDS = {
-  [TASKS.NOTIFICATION_PERMISSION]: 2,
+  [TASKS.NOTIFICATION_PERMISSION]: 3,
   [TASKS.VIEW_ADS_DAILY]: 1,
   [TASKS.WHATSAPP_FOLLOW]: 1,
   [TASKS.TELEGRAM_FOLLOW]: 1,
   [TASKS.REFERRAL_MILESTONE]: 2,
-  [TASKS.WATCH_ADS_VIDEO]: 2,
+  [TASKS.WATCH_5_ADS]: 5,
+  [TASKS.WATCH_10_ADS]: 12,
 } as const;
 
 export type TaskId = typeof TASKS[keyof typeof TASKS];
