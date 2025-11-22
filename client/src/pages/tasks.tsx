@@ -12,6 +12,7 @@ import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, Ex
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import { SubscribeBanner } from "@/components/subscribe-banner";
+import { AdRedirectModal } from "@/components/ad-redirect-modal";
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ export default function TasksPage() {
   const [notificationBlocked, setNotificationBlocked] = useState(false);
   const [fullscreenAdOpen, setFullscreenAdOpen] = useState(false);
   const [pendingAdComplete, setPendingAdComplete] = useState(false);
+  const [adRedirectOpen, setAdRedirectOpen] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -84,10 +86,13 @@ export default function TasksPage() {
   const handleCompleteTask = async (taskId: string, link?: string) => {
     setProcessingTaskId(taskId);
     
-    if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
+    if (taskId === 'view_ads_daily') {
       // Open fullscreen ad
       setFullscreenAdOpen(true);
       setPendingAdComplete(true);
+    } else if (taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
+      // Open ad redirect modal for 10 second timer
+      setAdRedirectOpen(true);
     } else if (taskId === 'notification_permission') {
       // Force notifications with ProPush
       if (window.propush) {
@@ -164,6 +169,19 @@ export default function TasksPage() {
         onClose={handleAdModalClose}
         onTimeComplete={() => {
           // Time is complete, user can close now
+        }}
+      />
+
+      <AdRedirectModal
+        open={adRedirectOpen}
+        onClose={() => {
+          setAdRedirectOpen(false);
+          setProcessingTaskId(null);
+        }}
+        onComplete={() => {
+          if (processingTaskId) {
+            completeTaskMutation.mutate(processingTaskId);
+          }
         }}
       />
 

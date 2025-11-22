@@ -501,7 +501,7 @@ export class MongoStorage implements IStorage {
     
     await Transaction.create({
       userId: id,
-      type: "addition",
+      type: "claim",
       amount,
       description,
       balanceAfter: newBalance,

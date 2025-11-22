@@ -167,10 +167,10 @@ export default function Dashboard() {
 
 
   useEffect(() => {
-    // Show fullscreen ad every 30 seconds on dashboard
+    // Show fullscreen ad every 15 seconds on dashboard
     const adInterval = setInterval(() => {
       setShowDashboardAd(true);
-    }, 30000); // 30 seconds
+    }, 15000); // 15 seconds
 
     return () => clearInterval(adInterval);
   }, []);
