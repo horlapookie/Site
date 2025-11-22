@@ -637,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = 20;
       const skip = (page - 1) * limit;
       
-      // Get users with pagination (only get unique emails to avoid duplicates)
+      // Get users with pagination
       const users = await User.find({})
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -647,25 +647,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total count of users
       const totalUsers = await User.countDocuments();
       
-      // Get all user IDs on this page and convert to strings for comparison
-      const userIds = users.map(u => u._id.toString());
+      // Get all user IDs for this page (keep as ObjectID for MongoDB)
+      const userIds = users.map(u => u._id);
       
-      // Get bot counts for all users in one aggregation query
+      // Get bot counts for all users using aggregation with ObjectID matching
       const botCounts = await Bot.aggregate([
-        { $match: { userId: { $in: userIds } } },
-        { $group: { _id: "$userId", count: { $sum: 1 } } }
+        { $match: { userId: { $in: userIds.map((id: any) => id.toString()) } } },
+        { 
+          $group: { 
+            _id: "$userId", 
+            count: { $sum: 1 } 
+          } 
+        }
       ]) as any[];
       
-      // Create a map for quick lookup - handle both ObjectId and string formats
+      // Create a map for quick lookup
       const botCountMap: Record<string, number> = {};
-      botCounts.forEach(item => {
-        const key = typeof item._id === 'string' ? item._id : item._id.toString();
+      botCounts.forEach((item: any) => {
+        const key = item._id.toString();
         botCountMap[key] = item.count;
       });
       
       // Map users with bot count
       const usersWithBotCount = users.map(user => {
         const userId = user._id.toString();
+        const botCount = botCountMap[userId] || 0;
+        
+        console.log(`User ${user.email} (${userId}): ${botCount} bots`);
+        
         return {
           id: userId,
           email: user.email,
@@ -677,7 +686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           referralCount: user.referralCount,
           autoMonitor: user.autoMonitor,
           createdAt: user.createdAt,
-          botCount: botCountMap[userId] || 0
+          botCount
         };
       });
       
