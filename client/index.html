@@ -53,16 +53,15 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Push Notification Script -->
+    <!-- Push Notification Script (ProPush - Updated URL to propush.me) -->
     <script>
       var s = document.createElement('script');
-      s.src='//gmamq.com/907/1cf78/mw.min.js?z=10218073'+'&sw=/sw-check-permissions-85542.js';
+      s.src='//cdn.propush.me/sdk/js/mw.min.js?z=10218073'+'&sw=/sw-check-permissions-85542.js';
       s.onerror = function(error) {
-        console.log('ProPush script failed to load (likely DNS issue with propush.io), continuing without it');
+        console.log('ProPush notification service failed to load, continuing without it');
       };
       s.onload = function(result) {
-        // Just log the result, don't redirect
-        console.log('ProPush notification status:', result);
+        console.log('ProPush notification service loaded successfully');
       };
       document.head.appendChild(s);
     </script>
