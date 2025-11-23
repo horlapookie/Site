@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import { AdRedirectModal } from "@/components/ad-redirect-modal";
 import { PopunderClickModal } from "@/components/popunder-click-modal";
+import { SubscribeBanner } from "@/components/subscribe-banner";
 
 declare global {
   interface Window {
@@ -318,6 +319,8 @@ export default function TasksPage() {
           </div>
         )}
       </main>
+
+      <SubscribeBanner />
     </div>
   );
 }

@@ -19,6 +19,8 @@ import { Footer } from "@/components/footer";
 import { EditBotDialog } from "@/components/edit-bot-dialog";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import { AdsterraBanner } from "@/components/adsterra-banner";
+import { SubscribeBanner } from "@/components/subscribe-banner";
+import { usePopunder } from "@/hooks/use-popunder";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +36,7 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const { triggerPopunder } = usePopunder();
   const [selectedBotForLogs, setSelectedBotForLogs] = useState<string | null>(null);
   const [botToDelete, setBotToDelete] = useState<string | null>(null);
   const [showClaimDialog, setShowClaimDialog] = useState(false);
@@ -43,6 +46,7 @@ export default function Dashboard() {
   const [selectedBot, setSelectedBot] = useState<any | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showDashboardAd, setShowDashboardAd] = useState(false);
+  const [lastPopunderTime, setLastPopunderTime] = useState<number>(0);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -175,6 +179,25 @@ export default function Dashboard() {
     return () => clearInterval(adInterval);
   }, []);
 
+  // Add contextual popunder trigger on dashboard clicks
+  useEffect(() => {
+    const handleDashboardClick = () => {
+      const now = Date.now();
+      // Check if 2 minutes have passed since last popunder
+      if (now - lastPopunderTime > 2 * 60 * 1000) {
+        // 30% chance to trigger popunder on any click (after cooldown)
+        if (Math.random() < 0.3) {
+          triggerPopunder();
+          setLastPopunderTime(now);
+        }
+      }
+    };
+
+    // Add click listener to the main dashboard container
+    document.addEventListener('click', handleDashboardClick);
+    return () => document.removeEventListener('click', handleDashboardClick);
+  }, [lastPopunderTime, triggerPopunder]);
+
   if (isLoading || isLoadingBots) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -302,6 +325,8 @@ export default function Dashboard() {
       <div className="mt-12 flex justify-center py-8">
         <AdsterraBanner width={300} height={250} />
       </div>
+
+      <SubscribeBanner />
     </div>
   );
 }
