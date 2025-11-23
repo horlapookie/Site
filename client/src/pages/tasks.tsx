@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth, type User } from "@/hooks/useAuth";
+import { usePopunder } from "@/hooks/use-popunder";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const TASK_ICONS: Record<string, any> = {
 export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { triggerPopunder } = usePopunder();
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
@@ -64,7 +66,10 @@ export default function TasksPage() {
     mutationFn: async (taskId: string) => {
       return await apiRequest("POST", `/api/tasks/${taskId}/complete`, {});
     },
-    onSuccess: (data) => {
+    onSuccess: (data, taskId) => {
+      if (taskId === 'watch_10_ads') {
+        triggerPopunder();
+      }
       toast({
         title: "Success!",
         description: data.message,

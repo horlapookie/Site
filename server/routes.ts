@@ -729,10 +729,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adsWatchedToday = adTask?.metadata?.lastAdWatchDate === today ? (adTask.metadata.adsWatchedToday || 0) : 0;
 
       const watch5Task = completedTasks.find(t => t.taskId === 'watch_5_ads');
-      const watch5Progress = watch5Task?.metadata?.adsWatched || 0;
+      const watch5Progress = watch5Task?.metadata?.lastCompletedDate === today ? (watch5Task.metadata?.adsWatched || 0) : 0;
 
       const watch10Task = completedTasks.find(t => t.taskId === 'watch_10_ads');
-      const watch10Progress = watch10Task?.metadata?.adsWatched || 0;
+      const watch10Progress = watch10Task?.metadata?.lastCompletedDate === today ? (watch10Task.metadata?.adsWatched || 0) : 0;
 
       const tasks = [
         {
@@ -860,37 +860,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       } else if (taskId === 'watch_5_ads') {
-        const adsWatched = existingCompletion?.metadata?.adsWatched || 0;
+        const adsWatched = existingCompletion?.metadata?.lastCompletedDate === today ? 
+          (existingCompletion.metadata?.adsWatched || 0) : 0;
         
         if (adsWatched >= 5) {
-          return res.status(400).json({ message: "Task already completed" });
+          return res.status(400).json({ message: "Daily limit reached for this task" });
         }
 
         const newCount = adsWatched + 1;
         if (existingCompletion) {
           await storage.updateTaskMetadata(userId, taskId, {
             adsWatched: newCount,
+            lastCompletedDate: today,
           });
         } else {
           await storage.completeTask(userId, taskId, {
             adsWatched: newCount,
+            lastCompletedDate: today,
           });
         }
       } else if (taskId === 'watch_10_ads') {
-        const adsWatched = existingCompletion?.metadata?.adsWatched || 0;
+        const adsWatched = existingCompletion?.metadata?.lastCompletedDate === today ? 
+          (existingCompletion.metadata?.adsWatched || 0) : 0;
         
         if (adsWatched >= 10) {
-          return res.status(400).json({ message: "Task already completed" });
+          return res.status(400).json({ message: "Daily limit reached for this task" });
         }
 
         const newCount = adsWatched + 1;
         if (existingCompletion) {
           await storage.updateTaskMetadata(userId, taskId, {
             adsWatched: newCount,
+            lastCompletedDate: today,
           });
         } else {
           await storage.completeTask(userId, taskId, {
             adsWatched: newCount,
+            lastCompletedDate: today,
           });
         }
       } else {

@@ -26,7 +26,7 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
   const [adKey, setAdKey] = useState(0);
 
   const TOTAL_COINS = 10;
-  const CLAIM_DELAY = 5000; // 5 seconds per coin
+  const CLAIM_DELAY = 8000; // 8 seconds per coin
 
   useEffect(() => {
     if (open) {
