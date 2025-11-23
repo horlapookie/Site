@@ -66,10 +66,7 @@ export default function TasksPage() {
     mutationFn: async (taskId: string) => {
       return await apiRequest("POST", `/api/tasks/${taskId}/complete`, {});
     },
-    onSuccess: (data, taskId) => {
-      if (taskId === 'watch_10_ads') {
-        triggerPopunder();
-      }
+    onSuccess: (data) => {
       toast({
         title: "Success!",
         description: data.message,
@@ -185,6 +182,10 @@ export default function TasksPage() {
         }}
         onComplete={() => {
           if (processingTaskId) {
+            // Trigger popunder during the user's click event for watch_10_ads
+            if (processingTaskId === 'watch_10_ads') {
+              triggerPopunder();
+            }
             completeTaskMutation.mutate(processingTaskId);
           }
         }}

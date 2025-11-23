@@ -48,20 +48,23 @@ export function PopunderProvider({ children }: { children: React.ReactNode }) {
     if (timeSinceLastTrigger < POPUNDER_COOLDOWN) {
       const remainingTime = Math.ceil((POPUNDER_COOLDOWN - timeSinceLastTrigger) / 1000 / 60);
       console.log(`Popunder on cooldown. Please wait ${remainingTime} more minute(s).`);
-      return;
+      return false;
     }
 
     lastTriggerTime.current = now;
-    console.log('Popunder triggered');
+    console.log('Popunder triggered - will open on next user click');
     
-    // Create a synthetic click event to trigger the popunder
-    // Most popunder scripts work by detecting clicks on the page
-    const clickEvent = new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true
-    });
-    document.body.dispatchEvent(clickEvent);
+    // Trigger the popunder by opening the Adsterra direct link
+    // This must be called during a real user interaction
+    try {
+      const popunderUrl = POPUNDER_SCRIPT_URL.replace('.js', '');
+      window.open(popunderUrl, '_blank');
+      console.log('Popunder window opened');
+      return true;
+    } catch (error) {
+      console.error('Failed to open popunder:', error);
+      return false;
+    }
   };
 
   return (
