@@ -10,6 +10,7 @@ import { Mail, Lock, LogIn } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AdsterraBanner } from "@/components/adsterra-banner";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -143,6 +144,9 @@ export default function Login() {
               </p>
             </CardContent>
           </Card>
+          <div className="mt-8">
+            <AdsterraBanner width={300} height={250} className="mx-auto" />
+          </div>
         </div>
       </main>
     </div>

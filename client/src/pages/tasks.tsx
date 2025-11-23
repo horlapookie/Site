@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import { SubscribeBanner } from "@/components/subscribe-banner";
 import { AdRedirectModal } from "@/components/ad-redirect-modal";
+import { PopunderClickModal } from "@/components/popunder-click-modal";
 
 declare global {
   interface Window {
@@ -39,13 +40,13 @@ const TASK_ICONS: Record<string, any> = {
 export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { triggerPopunder } = usePopunder();
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
   const [fullscreenAdOpen, setFullscreenAdOpen] = useState(false);
   const [pendingAdComplete, setPendingAdComplete] = useState(false);
   const [adRedirectOpen, setAdRedirectOpen] = useState(false);
+  const [popunderModalOpen, setPopunderModalOpen] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -182,13 +183,29 @@ export default function TasksPage() {
         }}
         onComplete={() => {
           if (processingTaskId) {
-            // Trigger popunder during the user's click event for watch_10_ads
+            // For watch_10_ads, show the clickable popunder modal instead
             if (processingTaskId === 'watch_10_ads') {
-              triggerPopunder();
+              setPopunderModalOpen(true);
+            } else {
+              completeTaskMutation.mutate(processingTaskId);
             }
-            completeTaskMutation.mutate(processingTaskId);
           }
         }}
+      />
+
+      <PopunderClickModal
+        open={popunderModalOpen}
+        onOpenChange={(isOpen) => {
+          setPopunderModalOpen(isOpen);
+          // When closing the popunder modal, complete the task
+          if (!isOpen && processingTaskId) {
+            completeTaskMutation.mutate(processingTaskId);
+            setAdRedirectOpen(false);
+            setProcessingTaskId(null);
+          }
+        }}
+        title="Watch Ad to Complete Task"
+        description="Click the button below to view an ad and earn coins!"
       />
 
       <main className="container mx-auto px-4 py-8">

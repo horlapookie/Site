@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { AdsterraBanner } from "@/components/adsterra-banner";
 
 export default function Deploy() {
   const [, setLocation] = useLocation();
@@ -121,6 +122,10 @@ export default function Deploy() {
             onDeploy={(config) => deployMutation.mutate(config)}
             isDeploying={deployMutation.isPending}
           />
+
+          <div className="mt-12 flex justify-center">
+            <AdsterraBanner width={300} height={250} />
+          </div>
         </div>
       </main>
     </div>

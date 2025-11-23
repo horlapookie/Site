@@ -19,6 +19,7 @@ import { Footer } from "@/components/footer";
 import { EditBotDialog } from "@/components/edit-bot-dialog";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import { SubscribeBanner } from "@/components/subscribe-banner";
+import { AdsterraBanner } from "@/components/adsterra-banner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -298,6 +299,10 @@ export default function Dashboard() {
         open={showDashboardAd}
         onClose={() => setShowDashboardAd(false)}
       />
+      
+      <div className="mt-12 flex justify-center py-8">
+        <AdsterraBanner width={300} height={250} />
+      </div>
       
       <SubscribeBanner />
     </div>

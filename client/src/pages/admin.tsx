@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Users, Server, AlertCircle, Clock, Coins, ArrowLeft, BadgeCheck } from "lucide-react";
+import { AdsterraBanner } from "@/components/adsterra-banner";
 import {
   Table,
   TableBody,
@@ -283,6 +284,10 @@ export default function AdminPage() {
             )}
           </CardContent>
         </Card>
+
+        <div className="mt-12 flex justify-center">
+          <AdsterraBanner width={300} height={250} />
+        </div>
       </main>
     </div>
   );
