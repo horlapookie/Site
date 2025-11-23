@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,8 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
   const [claimedCoins, setClaimedCoins] = useState(0);
   const [canClaim, setCanClaim] = useState(false);
   const [checking, setChecking] = useState(true);
+  const adContainerRef = useRef<HTMLDivElement>(null);
+  const [adKey, setAdKey] = useState(0);
 
   const TOTAL_COINS = 10;
   const CLAIM_DELAY = 5000; // 5 seconds per coin
@@ -31,6 +33,36 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
       checkClaimEligibility();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (claiming && adContainerRef.current) {
+      loadAdScript();
+    }
+  }, [claiming, adKey]);
+
+  const loadAdScript = () => {
+    if (!adContainerRef.current) return;
+
+    adContainerRef.current.innerHTML = '';
+
+    const configScript = document.createElement('script');
+    configScript.type = 'text/javascript';
+    configScript.text = `
+      atOptions = {
+        'key' : 'd6669b74008f39b4b286c1c5951dc3ee',
+        'format' : 'iframe',
+        'height' : 250,
+        'width' : 300,
+        'params' : {}
+      };
+    `;
+    adContainerRef.current.appendChild(configScript);
+
+    const invokeScript = document.createElement('script');
+    invokeScript.type = 'text/javascript';
+    invokeScript.src = '//www.highperformanceformat.com/d6669b74008f39b4b286c1c5951dc3ee/invoke.js';
+    adContainerRef.current.appendChild(invokeScript);
+  };
 
   const checkClaimEligibility = async () => {
     setChecking(true);
@@ -55,6 +87,7 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
     if (claiming || claimedCoins >= TOTAL_COINS) return;
     
     setClaiming(true);
+    setAdKey(prev => prev + 1);
     
     try {
       const token = localStorage.getItem('auth_token');
@@ -125,6 +158,11 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
               <p className="text-sm text-muted-foreground">Coins claimed</p>
             </div>
             <Progress value={(claimedCoins / TOTAL_COINS) * 100} className="h-2" />
+            
+            <div className="flex items-center justify-center overflow-hidden rounded-lg border bg-muted/30 p-2" data-testid="ad-banner-container">
+              <div ref={adContainerRef} className="flex items-center justify-center min-h-[250px]" />
+            </div>
+            
             <div className="flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <p className="text-sm text-muted-foreground">Claiming coins...</p>
