@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
-import { SubscribeBanner } from "@/components/subscribe-banner";
 import { AdRedirectModal } from "@/components/ad-redirect-modal";
 import { PopunderClickModal } from "@/components/popunder-click-modal";
 
@@ -319,8 +318,6 @@ export default function TasksPage() {
           </div>
         )}
       </main>
-      
-      <SubscribeBanner />
     </div>
   );
 }
