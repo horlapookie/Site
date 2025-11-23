@@ -275,8 +275,15 @@ export class MongoStorage implements IStorage {
 
     if (!lastClaim) return true;
 
-    const hoursSinceLastClaim = (now.getTime() - new Date(lastClaim).getTime()) / (1000 * 60 * 60);
-    return hoursSinceLastClaim >= 24;
+    // Check if last claim was today (same date)
+    const lastClaimDate = new Date(lastClaim);
+    const todayDate = new Date();
+    
+    const lastClaimDateStr = lastClaimDate.toDateString();
+    const todayDateStr = todayDate.toDateString();
+    
+    // If the dates are different (different days), user can claim again
+    return lastClaimDateStr !== todayDateStr;
   }
 
   async claimCoin(id: string): Promise<{ success: boolean; coinsRemaining: number; totalCoins: number }> {
@@ -288,24 +295,30 @@ export class MongoStorage implements IStorage {
     const today = new Date().toDateString();
     const userClaim = this.claimCount.get(id);
 
-    if (userClaim && userClaim.date === today) {
-      if (userClaim.count >= 10) {
-        return { success: false, coinsRemaining: 0, totalCoins: user.coins };
-      }
-    } else {
+    // If no in-memory claim data, check the database
+    if (!userClaim || userClaim.date !== today) {
+      // Check if they can claim (haven't claimed today)
       const canClaim = await this.canClaimCoins(id);
       if (!canClaim) {
         return { success: false, coinsRemaining: 0, totalCoins: user.coins };
       }
+      // Initialize claim tracking for today
       this.claimCount.set(id, { date: today, count: 0 });
     }
 
-    const newCoins = user.coins + 1;
     const claimData = this.claimCount.get(id)!;
+
+    // Check if they've already claimed 10 coins today
+    if (claimData.count >= 10) {
+      return { success: false, coinsRemaining: 0, totalCoins: user.coins };
+    }
+
+    const newCoins = user.coins + 1;
     claimData.count += 1;
 
-    // Only update lastCoinClaim when all 10 coins have been claimed
-    if (claimData.count === 10) {
+    // Update lastCoinClaim on FIRST claim of the day (when count == 1)
+    // This ensures the tracking persists even if server restarts
+    if (claimData.count === 1) {
       await User.findByIdAndUpdate(id, {
         coins: newCoins,
         lastCoinClaim: new Date(),

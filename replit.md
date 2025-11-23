@@ -114,9 +114,11 @@ Preferred communication style: Simple, everyday language.
 - Runs every 10 minutes checking all deployments
 
 **Coin Claiming System**
-- Users can claim 1 coin every 6 hours (10 coins total per session)
-- Claim eligibility tracked via timestamp in database
-- Progressive claiming with delay between each coin
+- Users can claim 1 coin every 8 seconds (10 coins total per 24-hour period)
+- Claim eligibility tracked via `lastCoinClaim` date in MongoDB User collection
+- Uses persistent date-based tracking: `lastCoinClaim` updated on FIRST claim of day
+- Server restart-safe: claim tracking persists in database, not just in-memory
+- Daily tracking reset: users can claim 10 coins per calendar day
 
 **Referral System**
 - Generates unique referral codes on signup
@@ -154,3 +156,18 @@ Preferred communication style: Simple, everyday language.
 - TypeScript compilation with strict mode
 - Drizzle migrations for schema changes
 - Scripts for database management and testing
+
+## Recent Updates (Nov 23, 2025)
+
+### Ads & Monetization
+- **Adsterra Banners**: Integrated on login, signup, dashboard, deploy, and admin pages
+- **PopunderClickModal**: User must click button to trigger popunders (respects browser popup blockers)
+- **Dashboard Popunders**: 30% chance on user click with 2-minute cooldown
+- **PropPush Integration**: Re-enabled with graceful error handling for DNS failures
+- **Tasks Popunder**: Clickable popunder modal for "watch 10 ads" task completion
+
+### Coin System Fixes
+- **Fixed claim tracking bug**: Updated `lastCoinClaim` on FIRST claim instead of 10th
+- **Server restart resilience**: Claim tracking now persists in MongoDB, not just in-memory
+- **Date-based checking**: Uses date string comparison instead of hour calculation
+- **Status**: Coin claiming now works reliably across server restarts
