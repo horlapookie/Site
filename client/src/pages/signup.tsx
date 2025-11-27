@@ -116,12 +116,7 @@ export default function Signup() {
           </div>
           
           <Card className="shadow-lg">
-            <CardHeader className="text-center pb-4">
-              <div className="inline-flex items-center gap-2 mx-auto rounded-full border bg-muted px-3 py-1 text-sm">
-                <Zap className="h-4 w-4" />
-                <span>Get 10 free coins on signup</span>
-              </div>
-            </CardHeader>
+            <CardHeader className="text-center pb-4"></CardHeader>
             <CardContent className="space-y-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -269,12 +264,12 @@ export default function Signup() {
                       <Gift className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-sm font-medium" data-testid="text-coins-bonus">
-                          {isValidReferralCode ? "3 Free Coins" : "0 Free Coins"}
+                          3 Free Coins
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {isValidReferralCode 
                             ? "Bonus for using a referral code!" 
-                            : "Use referral code to get bonus coins"}
+                            : "Sign up and get 3 free coins"}
                         </p>
                       </div>
                     </div>

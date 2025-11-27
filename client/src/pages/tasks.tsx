@@ -96,6 +96,16 @@ export default function TasksPage() {
           setProcessingTaskId(null);
         }
       }
+    } else if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
+      const popunderUrl = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
+      const popunder = window.open(popunderUrl, '_blank');
+      if (popunder) {
+        popunder.blur();
+        window.focus();
+      }
+      setTimeout(() => {
+        completeTaskMutation.mutate(taskId);
+      }, 2000);
     } else if (link) {
       window.open(link, '_blank');
       setTimeout(() => {
