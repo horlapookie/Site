@@ -240,7 +240,7 @@ export default function Dashboard() {
       script.setAttribute('data-cfasync', 'false');
       script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
       document.body.appendChild(script);
-    }, 30000);
+    }, 15000);
 
     return () => {
       clearTimeout(popunderTimer);

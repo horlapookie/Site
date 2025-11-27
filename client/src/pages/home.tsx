@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Header } from "@/components/header";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +7,20 @@ import { Zap, Shield, Terminal, Clock, Users, Star, ArrowRight } from "lucide-re
 
 export default function Home() {
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const popunderTimer = setTimeout(() => {
+      const script = document.createElement('script');
+      script.async = true;
+      script.setAttribute('data-cfasync', 'false');
+      script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
+      document.body.appendChild(script);
+    }, 15000);
+
+    return () => {
+      clearTimeout(popunderTimer);
+    };
+  }, []);
 
   const handleSignIn = () => {
     setLocation("/login");
