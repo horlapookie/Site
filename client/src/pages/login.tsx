@@ -10,7 +10,6 @@ import { Mail, Lock, LogIn } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PropellerBanner } from "@/components/propeller-banner";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -74,10 +73,6 @@ export default function Login() {
               <p className="text-muted-foreground mt-2">
                 Log in to manage your Eclipse-MD bots
               </p>
-            </div>
-            
-            <div className="flex justify-center mb-6">
-              <PropellerBanner width={300} height={100} />
             </div>
             
             <Card className="shadow-lg backdrop-blur-sm bg-white/80 dark:bg-slate-900/80">
@@ -157,10 +152,6 @@ export default function Login() {
                 </p>
               </CardContent>
             </Card>
-            
-            <div className="mt-8 flex justify-center">
-              <PropellerBanner width={300} height={250} />
-            </div>
           </div>
         </main>
       </div>

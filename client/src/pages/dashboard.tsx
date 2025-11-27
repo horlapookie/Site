@@ -234,10 +234,6 @@ export default function Dashboard() {
 
 
   useEffect(() => {
-    const adInterval = setInterval(() => {
-      setShowDashboardAd(true);
-    }, 15000);
-
     const popunderTimer = setTimeout(() => {
       const popunderUrl = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
       const popunder = window.open(popunderUrl, '_blank');
@@ -248,7 +244,6 @@ export default function Dashboard() {
     }, 30000);
 
     return () => {
-      clearInterval(adInterval);
       clearTimeout(popunderTimer);
     };
   }, []);
@@ -329,9 +324,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex justify-center mb-6">
-          <PropellerBanner width={728} height={90} />
-        </div>
 
         {bots.length === 0 ? (
           <EmptyState onDeploy={handleDeploy} />
@@ -416,14 +408,6 @@ export default function Dashboard() {
         bot={selectedBot}
       />
 
-      <FullscreenAdModal
-        open={showDashboardAd}
-        onClose={() => setShowDashboardAd(false)}
-      />
-      
-      <div className="mt-12 flex justify-center py-8">
-        <PropellerBanner width={300} height={250} />
-      </div>
 
       <SubscribeBanner />
     </PopunderWrapper>

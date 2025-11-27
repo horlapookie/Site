@@ -1,6 +1,5 @@
 import { Header } from "@/components/header";
 import { useLocation } from "wouter";
-import { PropellerBanner } from "@/components/propeller-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Zap, Shield, Terminal, Clock, Users, Star, ArrowRight } from "lucide-react";
@@ -67,10 +66,6 @@ export default function Home() {
               >
                 Sign In
               </Button>
-            </div>
-
-            <div className="flex justify-center mb-12">
-              <PropellerBanner width={728} height={90} />
             </div>
           </div>
         </div>
@@ -160,10 +155,6 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
-          
-          <div className="flex justify-center mb-12">
-            <PropellerBanner width={300} height={250} />
-          </div>
 
           <div className="text-center">
             <h3 className="text-2xl font-bold mb-4">Ready to get started?</h3>
@@ -178,13 +169,6 @@ export default function Home() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t shadow-lg">
-        <div className="container mx-auto p-2 flex items-center justify-center">
-          <PropellerBanner width={728} height={90} />
         </div>
       </div>
     </div>
