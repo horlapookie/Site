@@ -103,9 +103,13 @@ export default function TasksPage() {
         popunder.blur();
         window.focus();
       }
+      toast({
+        title: "Watch Ad",
+        description: "Please watch the ad for 8 seconds to earn coins",
+      });
       setTimeout(() => {
         completeTaskMutation.mutate(taskId);
-      }, 2000);
+      }, 8000);
     } else if (link) {
       window.open(link, '_blank');
       setTimeout(() => {

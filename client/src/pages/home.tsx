@@ -14,17 +14,24 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header isAuthenticated={false} onSignIn={handleSignIn} />
-      
       {/* Multi-color Animated Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900">
+      <div className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-cyan-900 pt-12">
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-0 left-0 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{animationDuration: '8s'}}></div>
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{animationDuration: '10s', animationDelay: '2s'}}></div>
           <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style={{animationDuration: '12s', animationDelay: '4s'}}></div>
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-24 md:py-32">
+        <div className="relative z-10 container mx-auto px-4 py-8">
+          <div className="flex justify-center mb-8">
+            <div className="text-white text-center">
+              <div className="text-4xl font-bold">Eclipse-MD</div>
+              <div className="text-sm text-white/60">WhatsApp Bot Hosting</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-3xl mx-auto">
             <div className="mb-6 inline-block">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-4 py-2 text-sm text-white">
@@ -68,6 +75,9 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Header after hero */}
+      <Header isAuthenticated={false} onSignIn={handleSignIn} />
 
       {/* Features Section */}
       <div className="container px-4 py-20 md:px-6">

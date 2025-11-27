@@ -3,7 +3,7 @@ import { Header } from "@/components/header";
 import { BotCard } from "@/components/bot-card";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth, type User } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [selectedBot, setSelectedBot] = useState<any | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showDashboardAd, setShowDashboardAd] = useState(false);
+  const [showDeleteFailedDialog, setShowDeleteFailedDialog] = useState(false);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -121,6 +122,32 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setBotToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete bot",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAllFailedMutation = useMutation({
+    mutationFn: async () => {
+      const failedBots = bots.filter((bot: any) => bot.status === "failed");
+      for (const bot of failedBots) {
+        await apiRequest("DELETE", `/api/bots/${bot._id}`);
+      }
+    },
+    onSuccess: () => {
+      const failedCount = bots.filter((bot: any) => bot.status === "failed").length;
+      toast({
+        title: "Success",
+        description: `Deleted ${failedCount} failed bot${failedCount !== 1 ? 's' : ''}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setShowDeleteFailedDialog(false);
     },
     onError: (error: Error) => {
       toast({
@@ -211,7 +238,19 @@ export default function Dashboard() {
       setShowDashboardAd(true);
     }, 15000);
 
-    return () => clearInterval(adInterval);
+    const popunderTimer = setTimeout(() => {
+      const popunderUrl = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
+      const popunder = window.open(popunderUrl, '_blank');
+      if (popunder) {
+        popunder.blur();
+        window.focus();
+      }
+    }, 30000);
+
+    return () => {
+      clearInterval(adInterval);
+      clearTimeout(popunderTimer);
+    };
   }, []);
 
   if (isLoading || isLoadingBots) {
@@ -270,10 +309,24 @@ export default function Dashboard() {
               Manage and monitor your Eclipse-MD bot deployments
             </p>
           </div>
-          <Button onClick={handleDeploy} className="gap-2" data-testid="button-new-deployment" data-no-popunder>
-            <Plus className="h-4 w-4" />
-            New Deployment
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleDeploy} className="gap-2" data-testid="button-new-deployment" data-no-popunder>
+              <Plus className="h-4 w-4" />
+              New Deployment
+            </Button>
+            {bots.some((bot: any) => bot.status === "failed") && (
+              <Button 
+                onClick={() => setShowDeleteFailedDialog(true)}
+                variant="destructive"
+                className="gap-2"
+                data-testid="button-delete-failed"
+                data-no-popunder
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Failed
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-center mb-6">
@@ -329,6 +382,29 @@ export default function Dashboard() {
               data-no-popunder
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteFailedDialog} onOpenChange={setShowDeleteFailedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Failed Deployments</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete all failed bot deployments? This will permanently remove
+              all failed bots from Heroku and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-no-popunder>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAllFailedMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-no-popunder
+              disabled={deleteAllFailedMutation.isPending}
+            >
+              {deleteAllFailedMutation.isPending ? "Deleting..." : "Delete All Failed"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
