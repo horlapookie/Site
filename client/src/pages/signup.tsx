@@ -116,7 +116,12 @@ export default function Signup() {
           </div>
           
           <Card className="shadow-lg">
-            <CardHeader className="text-center pb-4"></CardHeader>
+            <CardHeader className="text-center pb-4">
+              <div className="inline-flex items-center gap-2 mx-auto rounded-full border bg-muted px-3 py-1 text-sm">
+                <Zap className="h-4 w-4" />
+                <span>{isValidReferralCode ? "Get 3 bonus coins with referral" : "Create account to get started"}</span>
+              </div>
+            </CardHeader>
             <CardContent className="space-y-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -264,12 +269,12 @@ export default function Signup() {
                       <Gift className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-sm font-medium" data-testid="text-coins-bonus">
-                          3 Free Coins
+                          {isValidReferralCode ? "3 Bonus Coins" : "No Bonus"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {isValidReferralCode 
-                            ? "Bonus for using a referral code!" 
-                            : "Sign up and get 3 free coins"}
+                            ? "Referral bonus on signup!" 
+                            : "Use a referral code to get 3 coins"}
                         </p>
                       </div>
                     </div>
@@ -312,7 +317,7 @@ export default function Signup() {
                     disabled={form.formState.isSubmitting || isInvalidReferralCode || !form.watch("acceptPrivacy")}
                     data-testid="button-signup"
                   >
-                    {form.formState.isSubmitting ? "Creating Account..." : "Create Account & Get Coins"}
+                    {form.formState.isSubmitting ? "Creating Account..." : "Create Account"}
                   </Button>
                 </form>
               </Form>
