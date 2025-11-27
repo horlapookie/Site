@@ -97,12 +97,12 @@ export default function TasksPage() {
         }
       }
     } else if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
-      const popunderUrl = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
-      const popunder = window.open(popunderUrl, '_blank');
-      if (popunder) {
-        popunder.blur();
-        window.focus();
-      }
+      const script = document.createElement('script');
+      script.async = true;
+      script.setAttribute('data-cfasync', 'false');
+      script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
+      document.body.appendChild(script);
+      
       toast({
         title: "Watch Ad",
         description: "Please watch the ad for 8 seconds to earn coins",

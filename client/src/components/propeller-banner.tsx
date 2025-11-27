@@ -77,7 +77,7 @@ export function PropellerNativeBanner({ className = "" }: { className?: string }
   );
 }
 
-const POPUNDER_URL = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
+const POPUNDER_SCRIPT = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
 const POPUNDER_CHANCE = 0.4;
 
 export function usePopunderAds() {
@@ -105,11 +105,11 @@ export function usePopunderAds() {
       lastClickTime.current = now;
       clickCount.current++;
       
-      const popunder = window.open(POPUNDER_URL, '_blank');
-      if (popunder) {
-        popunder.blur();
-        window.focus();
-      }
+      const script = document.createElement('script');
+      script.async = true;
+      script.setAttribute('data-cfasync', 'false');
+      script.src = POPUNDER_SCRIPT;
+      document.body.appendChild(script);
       return true;
     }
     

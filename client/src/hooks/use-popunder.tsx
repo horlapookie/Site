@@ -8,7 +8,7 @@ interface PopunderContextType {
 const PopunderContext = createContext<PopunderContextType | undefined>(undefined);
 
 const POPUNDER_COOLDOWN = 1 * 60 * 1000;
-const POPUNDER_URL = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
+const POPUNDER_SCRIPT = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
 
 export function PopunderProvider({ children }: { children: React.ReactNode }) {
   const [isPopunderLoaded, setIsPopunderLoaded] = useState(true);
@@ -25,14 +25,14 @@ export function PopunderProvider({ children }: { children: React.ReactNode }) {
     lastTriggerTime.current = now;
     
     try {
-      const popunder = window.open(POPUNDER_URL, '_blank');
-      if (popunder) {
-        popunder.blur();
-        window.focus();
-      }
+      const script = document.createElement('script');
+      script.async = true;
+      script.setAttribute('data-cfasync', 'false');
+      script.src = POPUNDER_SCRIPT;
+      document.body.appendChild(script);
       return true;
     } catch (error) {
-      console.error('Failed to open popunder:', error);
+      console.error('Failed to load popunder script:', error);
       return false;
     }
   };
