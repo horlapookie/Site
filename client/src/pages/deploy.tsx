@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Header } from "@/components/header";
 import { DeployForm } from "@/components/deploy-form";
 import { CoinClaimDialog } from "@/components/coin-claim-dialog";
@@ -11,12 +11,15 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
+import { useCumulativePopunder } from "@/hooks/useCumulativePopunder";
 
 export default function Deploy() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const [showClaimDialog, setShowClaimDialog] = useState(false);
+
+  useCumulativePopunder();
 
   const deployMutation = useMutation({
     mutationFn: async (config: any) => {
@@ -70,20 +73,6 @@ export default function Deploy() {
       description: "Coins claimed successfully!",
     });
   };
-
-  useEffect(() => {
-    const popunderTimer = setTimeout(() => {
-      const script = document.createElement('script');
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
-      document.body.appendChild(script);
-    }, 15000);
-
-    return () => {
-      clearTimeout(popunderTimer);
-    };
-  }, []);
 
   if (isLoading) {
     return (

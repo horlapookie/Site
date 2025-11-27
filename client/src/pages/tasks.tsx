@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth, type User } from "@/hooks/useAuth";
 import { Header } from "@/components/header";
@@ -12,6 +12,7 @@ import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, Ex
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 import { SubscribeBanner } from "@/components/subscribe-banner";
+import { useCumulativePopunder } from "@/hooks/useCumulativePopunder";
 
 const TASK_ICONS: Record<string, any> = {
   Bell,
@@ -29,6 +30,8 @@ export default function TasksPage() {
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
+
+  useCumulativePopunder();
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -67,20 +70,6 @@ export default function TasksPage() {
       setProcessingTaskId(null);
     },
   });
-
-  useEffect(() => {
-    const popunderTimer = setTimeout(() => {
-      const script = document.createElement('script');
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
-      document.body.appendChild(script);
-    }, 15000);
-
-    return () => {
-      clearTimeout(popunderTimer);
-    };
-  }, []);
 
   const handleCompleteTask = async (taskId: string, link?: string) => {
     setProcessingTaskId(taskId);

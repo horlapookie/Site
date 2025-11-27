@@ -20,6 +20,7 @@ import { EditBotDialog } from "@/components/edit-bot-dialog";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
 import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 import { SubscribeBanner } from "@/components/subscribe-banner";
+import { useCumulativePopunder } from "@/hooks/useCumulativePopunder";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,8 @@ export default function Dashboard() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showDashboardAd, setShowDashboardAd] = useState(false);
   const [showDeleteFailedDialog, setShowDeleteFailedDialog] = useState(false);
+
+  useCumulativePopunder();
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -231,21 +234,6 @@ export default function Dashboard() {
   const handleAutoMonitorToggle = async (botId: string, currentStatus: boolean) => {
     await enableAutoMonitorMutation.mutateAsync({ botId, enable: !currentStatus });
   };
-
-
-  useEffect(() => {
-    const popunderTimer = setTimeout(() => {
-      const script = document.createElement('script');
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
-      document.body.appendChild(script);
-    }, 15000);
-
-    return () => {
-      clearTimeout(popunderTimer);
-    };
-  }, []);
 
   if (isLoading || isLoadingBots) {
     return (

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,15 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function Login() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    // Add social bar script
+    const socialScript = document.createElement('script');
+    socialScript.type = 'text/javascript';
+    socialScript.async = true;
+    socialScript.src = '//pl28144084.effectivegatecpm.com/5b/b8/2b/5bb82b437084e0a5fb0fc271087ce7f1.js';
+    document.body.appendChild(socialScript);
+  }, []);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
