@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth, type User } from "@/hooks/useAuth";
-import { usePopunder } from "@/hooks/use-popunder";
 import { Header } from "@/components/header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,24 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
+import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle, GitFork } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
-import { AdRedirectModal } from "@/components/ad-redirect-modal";
-import { PopunderClickModal } from "@/components/popunder-click-modal";
+import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 import { SubscribeBanner } from "@/components/subscribe-banner";
-
-declare global {
-  interface Window {
-    propush?: {
-      requestNotifications: (options: any) => Promise<void>;
-      pushSubscribe: (options: {
-        type: string;
-        position?: string;
-      }) => Promise<void>;
-    };
-  }
-}
 
 const TASK_ICONS: Record<string, any> = {
   Bell,
@@ -35,6 +20,7 @@ const TASK_ICONS: Record<string, any> = {
   Send,
   Users,
   Video,
+  GitFork,
 };
 
 export default function TasksPage() {
@@ -43,10 +29,6 @@ export default function TasksPage() {
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
-  const [fullscreenAdOpen, setFullscreenAdOpen] = useState(false);
-  const [pendingAdComplete, setPendingAdComplete] = useState(false);
-  const [adRedirectOpen, setAdRedirectOpen] = useState(false);
-  const [popunderModalOpen, setPopunderModalOpen] = useState(false);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -89,31 +71,8 @@ export default function TasksPage() {
   const handleCompleteTask = async (taskId: string, link?: string) => {
     setProcessingTaskId(taskId);
     
-    if (taskId === 'view_ads_daily') {
-      // Open fullscreen ad
-      setFullscreenAdOpen(true);
-      setPendingAdComplete(true);
-    } else if (taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
-      // Open ad redirect modal for 10 second timer
-      setAdRedirectOpen(true);
-    } else if (taskId === 'notification_permission') {
-      // Force notifications with ProPush
-      if (window.propush) {
-        try {
-          await window.propush.requestNotifications({
-            title: "Enable Notifications",
-            message: "Get updates and earn coins!",
-          });
-          completeTaskMutation.mutate(taskId);
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to enable notifications",
-            variant: "destructive",
-          });
-          setProcessingTaskId(null);
-        }
-      } else if ('Notification' in window) {
+    if (taskId === 'notification_permission') {
+      if ('Notification' in window) {
         try {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
@@ -138,9 +97,7 @@ export default function TasksPage() {
         }
       }
     } else if (link) {
-      // Open link in new tab
       window.open(link, '_blank');
-      // Wait a moment then allow claiming
       setTimeout(() => {
         completeTaskMutation.mutate(taskId);
       }, 3000);
@@ -149,16 +106,8 @@ export default function TasksPage() {
     }
   };
 
-  const handleAdModalClose = () => {
-    setFullscreenAdOpen(false);
-    if (pendingAdComplete && processingTaskId) {
-      completeTaskMutation.mutate(processingTaskId);
-      setPendingAdComplete(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
+    <PopunderWrapper className="min-h-screen bg-background">
       <Header
         isAuthenticated={true}
         coins={(user as User | null)?.coins || 0}
@@ -167,53 +116,16 @@ export default function TasksPage() {
         isAdmin={(user as User | null)?.isAdmin}
       />
 
-      <FullscreenAdModal
-        open={fullscreenAdOpen}
-        onClose={handleAdModalClose}
-        onTimeComplete={() => {
-          // Time is complete, user can close now
-        }}
-      />
-
-      <AdRedirectModal
-        open={adRedirectOpen}
-        onClose={() => {
-          setAdRedirectOpen(false);
-          setProcessingTaskId(null);
-        }}
-        onComplete={() => {
-          if (processingTaskId) {
-            // For watch_10_ads, show the clickable popunder modal instead
-            if (processingTaskId === 'watch_10_ads') {
-              setPopunderModalOpen(true);
-            } else {
-              completeTaskMutation.mutate(processingTaskId);
-            }
-          }
-        }}
-      />
-
-      <PopunderClickModal
-        open={popunderModalOpen}
-        onOpenChange={(isOpen) => {
-          setPopunderModalOpen(isOpen);
-          // When closing the popunder modal, complete the task
-          if (!isOpen && processingTaskId) {
-            completeTaskMutation.mutate(processingTaskId);
-            setAdRedirectOpen(false);
-            setProcessingTaskId(null);
-          }
-        }}
-        title="Watch Ad to Complete Task"
-        description="Click the button below to view an ad and earn coins!"
-      />
-
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Tasks & Rewards</h1>
           <p className="text-muted-foreground">
             Complete tasks to earn coins and unlock features
           </p>
+        </div>
+
+        <div className="flex justify-center mb-8">
+          <PropellerBanner width={728} height={90} />
         </div>
 
         {isLoading ? (
@@ -229,7 +141,7 @@ export default function TasksPage() {
               return (
                 <Card key={task.id} className={task.completed ? "bg-muted/50" : ""} data-testid={`card-task-${task.id}`}>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <div className="rounded-lg bg-primary/10 p-2">
                           <IconComponent className="h-5 w-5 text-primary" />
@@ -242,7 +154,7 @@ export default function TasksPage() {
                         </div>
                       </div>
                       {task.completed && (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                       )}
                     </div>
                   </CardHeader>
@@ -273,7 +185,7 @@ export default function TasksPage() {
                       )}
 
 
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <Badge variant="secondary" className="text-sm font-semibold">
                           +{task.reward} Coins
                         </Badge>
@@ -284,12 +196,13 @@ export default function TasksPage() {
                             Completed
                           </Badge>
                         ) : task.canComplete ? (
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <Button
                               size="sm"
                               variant={viewedTasks.has(task.id) ? "default" : "outline"}
                               onClick={() => toggleViewTask(task.id)}
                               data-testid={`button-view-${task.id}`}
+                              data-no-popunder
                             >
                               {viewedTasks.has(task.id) ? "Close" : "View Task"}
                             </Button>
@@ -299,6 +212,7 @@ export default function TasksPage() {
                                 onClick={() => handleCompleteTask(task.id, task.link)}
                                 disabled={processingTaskId === task.id}
                                 data-testid={`button-complete-${task.id}`}
+                                data-no-popunder
                               >
                                 {task.link && <ExternalLink className="mr-2 h-4 w-4" />}
                                 {processingTaskId === task.id ? "Processing..." : "Complete"}
@@ -306,7 +220,7 @@ export default function TasksPage() {
                             )}
                           </div>
                         ) : (
-                          <Button size="sm" variant="outline" disabled>
+                          <Button size="sm" variant="outline" disabled data-no-popunder>
                             Not Available
                           </Button>
                         )}
@@ -318,9 +232,13 @@ export default function TasksPage() {
             })}
           </div>
         )}
+
+        <div className="flex justify-center mt-8">
+          <PropellerBanner width={300} height={250} />
+        </div>
       </main>
 
       <SubscribeBanner />
-    </div>
+    </PopunderWrapper>
   );
 }

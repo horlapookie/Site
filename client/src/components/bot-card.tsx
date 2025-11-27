@@ -1,8 +1,7 @@
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Terminal, Power, Trash2, RotateCw, Edit } from "lucide-react";
+import { Terminal, Trash2, RotateCw, Edit, Pause, Play } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
 interface Bot {
@@ -20,6 +19,8 @@ interface BotCardProps {
   onRestart: (botId: string) => void;
   onDelete: (botId: string) => void;
   onEdit: (botId: string) => void;
+  onPause?: (botId: string) => void;
+  onResume?: (botId: string) => void;
   onAutoMonitorToggle?: () => void;
 }
 
@@ -30,18 +31,22 @@ const statusConfig = {
   failed: { label: "Failed", variant: "destructive" as const, color: "bg-red-500" },
 };
 
-export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit }: BotCardProps) {
+export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit, onPause, onResume }: BotCardProps) {
   if (!bot || !bot.status) {
     return null;
   }
   
   const config = statusConfig[bot.status];
+  const canEdit = bot.status === "running" || bot.status === "failed" || bot.status === "stopped";
+  const canPause = bot.status === "running";
+  const canResume = bot.status === "stopped";
+  const canRestart = bot.status === "running" || bot.status === "failed";
 
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <h3 className="font-mono text-lg font-semibold">{bot.herokuAppName}</h3>
             <Badge variant={config.variant}>
               <span className={`inline-block w-2 h-2 rounded-full ${config.color} mr-1`} />
@@ -62,7 +67,7 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit }: BotCar
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
           variant="outline"
           size="sm"
@@ -77,15 +82,36 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit }: BotCar
           variant="outline"
           size="sm"
           onClick={() => onEdit(bot._id)}
+          disabled={!canEdit}
           data-testid={`button-edit-${bot._id}`}
         >
           <Edit className="w-4 h-4" />
         </Button>
+        {canPause && onPause && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPause(bot._id)}
+            data-testid={`button-pause-${bot._id}`}
+          >
+            <Pause className="w-4 h-4" />
+          </Button>
+        )}
+        {canResume && onResume && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onResume(bot._id)}
+            data-testid={`button-resume-${bot._id}`}
+          >
+            <Play className="w-4 h-4" />
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
           onClick={() => onRestart(bot._id)}
-          disabled={bot.status !== "running"}
+          disabled={!canRestart}
           data-testid={`button-restart-${bot._id}`}
         >
           <RotateCw className="w-4 h-4" />

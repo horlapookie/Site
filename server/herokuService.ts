@@ -1,7 +1,5 @@
 import Heroku from "heroku-client";
 
-const heroku = new Heroku({ token: process.env.HEROKU_API_KEY?.trim() });
-
 export interface DeploymentConfig {
   botNumber: string;
   sessionData: string;
@@ -16,9 +14,68 @@ export interface DeploymentConfig {
   autoRecording: boolean;
 }
 
-export async function createHerokuApp(appName: string, config: DeploymentConfig) {
+interface HerokuApiKey {
+  key: string;
+  name: string;
+  index: number;
+}
+
+function getHerokuApiKeys(): HerokuApiKey[] {
+  const keys: HerokuApiKey[] = [];
+  
+  if (process.env.HEROKU_API_KEY?.trim()) {
+    keys.push({
+      key: process.env.HEROKU_API_KEY.trim(),
+      name: 'HEROKU_API_KEY',
+      index: 1
+    });
+  }
+  
+  for (let i = 2; i <= 20; i++) {
+    const envKey = `HEROKU_API_KEY_${i}`;
+    const keyValue = process.env[envKey]?.trim();
+    if (keyValue) {
+      keys.push({
+        key: keyValue,
+        name: envKey,
+        index: i
+      });
+    }
+  }
+  
+  return keys;
+}
+
+function getHerokuClient(apiKeyIndex?: number): { client: Heroku; keyInfo: HerokuApiKey } {
+  const keys = getHerokuApiKeys();
+  
+  if (keys.length === 0) {
+    throw new Error('No Heroku API keys configured');
+  }
+  
+  let selectedKey: HerokuApiKey;
+  
+  if (apiKeyIndex !== undefined) {
+    selectedKey = keys.find(k => k.index === apiKeyIndex) || keys[0];
+  } else {
+    const randomIndex = Math.floor(Math.random() * keys.length);
+    selectedKey = keys[randomIndex];
+  }
+  
+  return {
+    client: new Heroku({ token: selectedKey.key }),
+    keyInfo: selectedKey
+  };
+}
+
+export function getAvailableApiKeys(): { index: number; name: string }[] {
+  return getHerokuApiKeys().map(k => ({ index: k.index, name: k.name }));
+}
+
+export async function createHerokuApp(appName: string, config: DeploymentConfig, apiKeyIndex?: number) {
+  const { client: heroku, keyInfo } = getHerokuClient(apiKeyIndex);
+  
   try {
-    // Create the app in personal account
     const app = await heroku.post("/apps", {
       body: {
         name: appName,
@@ -27,7 +84,6 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig)
       },
     });
 
-    // Set config vars (environment variables)
     await heroku.patch(`/apps/${appName}/config-vars`, {
       body: {
         NODE_ENV: "production",
@@ -48,7 +104,6 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig)
       },
     });
 
-    // Add buildpack
     await heroku.put(`/apps/${appName}/buildpack-installations`, {
       body: {
         updates: [
@@ -59,7 +114,6 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig)
       },
     });
 
-    // Create build from GitHub repo
     const build = await heroku.post(`/apps/${appName}/builds`, {
       body: {
         source_blob: {
@@ -74,11 +128,11 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig)
       appName: app.name,
       buildId: build.id,
       webUrl: app.web_url,
+      apiKeyUsed: keyInfo.index,
     };
   } catch (error: any) {
     console.error("Heroku deployment error:", error);
     
-    // Check for specific Heroku errors
     if (error.statusCode === 422 && error.body?.id === 'verification_required') {
       throw new Error('Heroku account verification required. Please add payment information at https://heroku.com/verify');
     }
@@ -87,7 +141,9 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig)
   }
 }
 
-export async function getAppLogs(appName: string, lines: number = 100) {
+export async function getAppLogs(appName: string, lines: number = 100, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
   try {
     const logSession = await heroku.post(`/apps/${appName}/log-sessions`, {
       body: {
@@ -96,7 +152,6 @@ export async function getAppLogs(appName: string, lines: number = 100) {
       },
     });
 
-    // Fetch logs from the logplex URL
     const response = await fetch(logSession.logplex_url);
     const logs = await response.text();
     return logs;
@@ -106,9 +161,10 @@ export async function getAppLogs(appName: string, lines: number = 100) {
   }
 }
 
-export async function updateHerokuApp(appName: string, config: DeploymentConfig) {
+export async function updateHerokuApp(appName: string, config: DeploymentConfig, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
   try {
-    // Update config vars (environment variables)
     await heroku.patch(`/apps/${appName}/config-vars`, {
       body: {
         NODE_ENV: "production",
@@ -129,7 +185,6 @@ export async function updateHerokuApp(appName: string, config: DeploymentConfig)
       },
     });
 
-    // Restart the app to apply new config
     await heroku.delete(`/apps/${appName}/dynos`);
 
     return {
@@ -142,7 +197,9 @@ export async function updateHerokuApp(appName: string, config: DeploymentConfig)
   }
 }
 
-export async function restartApp(appName: string) {
+export async function restartApp(appName: string, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
   try {
     await heroku.delete(`/apps/${appName}/dynos`);
     return { success: true };
@@ -152,7 +209,41 @@ export async function restartApp(appName: string) {
   }
 }
 
-export async function deleteApp(appName: string) {
+export async function pauseApp(appName: string, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
+  try {
+    await heroku.patch(`/apps/${appName}/formation/web`, {
+      body: {
+        quantity: 0
+      }
+    });
+    return { success: true, message: "Bot paused successfully" };
+  } catch (error: any) {
+    console.error("Error pausing app:", error);
+    throw new Error(`Failed to pause app: ${error.message}`);
+  }
+}
+
+export async function resumeApp(appName: string, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
+  try {
+    await heroku.patch(`/apps/${appName}/formation/web`, {
+      body: {
+        quantity: 1
+      }
+    });
+    return { success: true, message: "Bot resumed successfully" };
+  } catch (error: any) {
+    console.error("Error resuming app:", error);
+    throw new Error(`Failed to resume app: ${error.message}`);
+  }
+}
+
+export async function deleteApp(appName: string, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
   try {
     await heroku.delete(`/apps/${appName}`);
     return { success: true };
@@ -162,7 +253,9 @@ export async function deleteApp(appName: string) {
   }
 }
 
-export async function getAppInfo(appName: string) {
+export async function getAppInfo(appName: string, apiKeyIndex?: number) {
+  const { client: heroku } = getHerokuClient(apiKeyIndex);
+  
   try {
     const app = await heroku.get(`/apps/${appName}`);
     return app;
@@ -170,4 +263,24 @@ export async function getAppInfo(appName: string) {
     console.error("Error getting app info:", error);
     throw new Error(`Failed to get app info: ${error.message}`);
   }
+}
+
+export async function tryAllApiKeys<T>(
+  operation: (apiKeyIndex: number) => Promise<T>,
+  appName: string
+): Promise<T> {
+  const keys = getHerokuApiKeys();
+  let lastError: Error | null = null;
+  
+  for (const key of keys) {
+    try {
+      return await operation(key.index);
+    } catch (error: any) {
+      console.log(`API key ${key.name} failed for ${appName}: ${error.message}`);
+      lastError = error;
+      continue;
+    }
+  }
+  
+  throw lastError || new Error('All API keys failed');
 }

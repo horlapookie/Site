@@ -5,7 +5,7 @@ import { connectDB } from "./mongodb";
 import Bot from "./models/Bot";
 import User from "./models/User";
 import { botDeploymentSchema, type User as UserType } from "@shared/schema";
-import { createHerokuApp, updateHerokuApp, getAppLogs, restartApp, deleteApp } from "./herokuService";
+import { createHerokuApp, updateHerokuApp, getAppLogs, restartApp, deleteApp, pauseApp, resumeApp, getAvailableApiKeys } from "./herokuService";
 import { generateToken, verifyToken, getUserId as getAuthUserId } from "./auth";
 
 const DEPLOYMENT_COST = 10; // coins per deployment
@@ -456,6 +456,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pause bot
+  app.post("/api/bots/:id/pause", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const bot = await Bot.findOne({ _id: req.params.id, userId });
+
+      if (!bot) {
+        return res.status(404).json({ message: "Bot not found" });
+      }
+
+      try {
+        await pauseApp(bot.herokuAppName);
+        await Bot.findByIdAndUpdate(bot._id, { status: "stopped" });
+        res.json({ message: "Bot paused successfully" });
+      } catch (error: any) {
+        if (error.message.includes('404') || error.message.includes('not_found')) {
+          res.status(404).json({ message: "App not found on Heroku. It may have been deleted or failed to deploy." });
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error("Error pausing bot:", error);
+      res.status(500).json({ message: "Failed to pause bot" });
+    }
+  });
+
+  // Resume bot
+  app.post("/api/bots/:id/resume", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const bot = await Bot.findOne({ _id: req.params.id, userId });
+
+      if (!bot) {
+        return res.status(404).json({ message: "Bot not found" });
+      }
+
+      try {
+        await resumeApp(bot.herokuAppName);
+        await Bot.findByIdAndUpdate(bot._id, { status: "running" });
+        res.json({ message: "Bot resumed successfully" });
+      } catch (error: any) {
+        if (error.message.includes('404') || error.message.includes('not_found')) {
+          res.status(404).json({ message: "App not found on Heroku. It may have been deleted or failed to deploy." });
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error("Error resuming bot:", error);
+      res.status(500).json({ message: "Failed to resume bot" });
+    }
+  });
+
+  // Get available Heroku API keys (admin only)
+  app.get("/api/admin/heroku-keys", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const keys = getAvailableApiKeys();
+      res.json({ keys, count: keys.length });
+    } catch (error) {
+      console.error("Error fetching API keys:", error);
+      res.status(500).json({ message: "Failed to fetch API keys" });
+    }
+  });
+
   // Update bot configuration (costs 5 coins)
   app.patch("/api/bots/:id", requireAuth, async (req, res) => {
     try {
@@ -738,8 +810,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'notification_permission',
           title: 'Enable Notifications',
-          description: 'Allow site notifications to earn 3 coins',
-          reward: 3,
+          description: 'Allow site notifications to earn 1 coin',
+          reward: 1,
           icon: 'Bell',
           completed: completedTasks.some(t => t.taskId === 'notification_permission'),
           canComplete: !completedTasks.some(t => t.taskId === 'notification_permission'),
@@ -747,19 +819,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'view_ads_daily',
           title: 'View Ads',
-          description: 'Watch ads for 5 seconds to earn 1 coin (max 10 per day)',
+          description: 'Watch ads to earn coins (max 5 per day)',
           reward: 1,
           icon: 'Eye',
           completed: false,
-          canComplete: adsWatchedToday < 10,
-          dailyLimit: 10,
+          canComplete: adsWatchedToday < 5,
+          dailyLimit: 5,
           dailyProgress: adsWatchedToday,
         },
         {
           id: 'watch_5_ads',
           title: 'Watch 5 Ads',
-          description: 'Watch 5 advertisements for 5 seconds each to earn 4 coins',
-          reward: 4,
+          description: 'Watch 5 advertisements to earn 2 coins',
+          reward: 2,
           icon: 'Video',
           completed: watch5Progress >= 5,
           canComplete: watch5Progress < 5,
@@ -769,8 +841,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'watch_10_ads',
           title: 'Watch 10 Ads',
-          description: 'Watch 10 advertisements to earn 8 coins',
-          reward: 8,
+          description: 'Watch 10 advertisements to earn 3 coins',
+          reward: 3,
           icon: 'Video',
           completed: watch10Progress >= 10,
           canComplete: watch10Progress < 10,
@@ -800,8 +872,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'referral_milestone',
           title: 'Refer 5 Friends',
-          description: 'Get 5 referrals to earn 2 coins',
-          reward: 2,
+          description: 'Get 5 referrals to earn 1 coin',
+          reward: 1,
           icon: 'Users',
           completed: completedTasks.some(t => t.taskId === 'referral_milestone'),
           canComplete: (user.referralCount || 0) >= 5 && !completedTasks.some(t => t.taskId === 'referral_milestone'),
@@ -809,8 +881,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 'fork_repo',
           title: 'Fork Bot Repository',
-          description: 'Fork the Eclipse-MD bot repository on GitHub to earn 2 coins',
-          reward: 2,
+          description: 'Fork the Eclipse-MD bot repository on GitHub to earn 1 coin',
+          reward: 1,
           icon: 'GitFork',
           completed: completedTasks.some(t => t.taskId === 'fork_repo'),
           canComplete: !completedTasks.some(t => t.taskId === 'fork_repo'),
@@ -915,14 +987,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const rewards: Record<string, number> = {
-        notification_permission: 3,
+        notification_permission: 1,
         view_ads_daily: 1,
         whatsapp_follow: 1,
         telegram_follow: 1,
-        referral_milestone: 2,
-        watch_5_ads: 4,
-        watch_10_ads: 8,
-        fork_repo: 2,
+        referral_milestone: 1,
+        watch_5_ads: 2,
+        watch_10_ads: 3,
+        fork_repo: 1,
       };
 
       const reward = rewards[taskId] || 0;

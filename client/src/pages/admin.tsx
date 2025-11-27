@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Users, Server, AlertCircle, Clock, Coins, ArrowLeft, BadgeCheck } from "lucide-react";
-import { AdsterraBanner } from "@/components/adsterra-banner";
+import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 import {
   Table,
   TableBody,
@@ -21,7 +21,6 @@ export default function AdminPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Block non-admin users immediately
   if (!user || !user.isAdmin) {
     setLocation("/dashboard");
     return (
@@ -45,7 +44,7 @@ export default function AdminPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <PopunderWrapper className="min-h-screen bg-background">
       <Header 
         isAuthenticated={true} 
         isAdmin={user.isAdmin}
@@ -61,6 +60,7 @@ export default function AdminPage() {
             onClick={() => setLocation("/dashboard")}
             className="mb-4"
             data-testid="button-back-to-dashboard"
+            data-no-popunder
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
@@ -71,7 +71,6 @@ export default function AdminPage() {
           </p>
         </div>
 
-        {/* Admin Profile Card */}
         <Card className="mb-8 border-blue-500/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -105,7 +104,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* Statistics Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -192,7 +190,6 @@ export default function AdminPage() {
           </Card>
         </div>
 
-        {/* Users Table */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
@@ -286,9 +283,9 @@ export default function AdminPage() {
         </Card>
 
         <div className="mt-12 flex justify-center">
-          <AdsterraBanner width={300} height={250} />
+          <PropellerBanner width={300} height={250} />
         </div>
       </main>
-    </div>
+    </PopunderWrapper>
   );
 }

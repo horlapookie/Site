@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ExternalLink, ChevronDown, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { PropellerBanner } from "@/components/propeller-banner";
 
 interface DeployFormProps {
   onDeploy?: (config: any) => void;
@@ -68,6 +69,10 @@ export function DeployForm({ onDeploy, isDeploying = false }: DeployFormProps) {
                 required
                 data-testid="input-session-id"
               />
+            </div>
+
+            <div className="flex justify-center py-4">
+              <PropellerBanner width={300} height={100} />
             </div>
 
             <div className="space-y-2">

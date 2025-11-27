@@ -10,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { AdsterraBanner } from "@/components/adsterra-banner";
+import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 
 export default function Deploy() {
   const [, setLocation] = useLocation();
@@ -52,14 +52,10 @@ export default function Deploy() {
   });
 
   const handleSignOut = async () => {
-    // Clear JWT token from localStorage
     localStorage.removeItem('auth_token');
-    // Invalidate and reset the auth query immediately
     await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     await queryClient.resetQueries({ queryKey: ["/api/auth/user"] });
-    // Clear all cached data
     queryClient.clear();
-    // Force a hard redirect to login page
     window.location.href = "/login";
   };
 
@@ -84,7 +80,7 @@ export default function Deploy() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PopunderWrapper className="min-h-screen bg-background">
       <Header
         isAuthenticated={true}
         coins={user?.coins || 0}
@@ -105,6 +101,7 @@ export default function Deploy() {
           className="mb-6 gap-2"
           onClick={() => setLocation("/dashboard")}
           data-testid="button-back"
+          data-no-popunder
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
@@ -124,10 +121,10 @@ export default function Deploy() {
           />
 
           <div className="mt-12 flex justify-center">
-            <AdsterraBanner width={300} height={250} />
+            <PropellerBanner width={300} height={250} />
           </div>
         </div>
       </main>
-    </div>
+    </PopunderWrapper>
   );
 }

@@ -18,9 +18,8 @@ import { SettingsDialog } from "@/components/settings-dialog";
 import { Footer } from "@/components/footer";
 import { EditBotDialog } from "@/components/edit-bot-dialog";
 import { FullscreenAdModal } from "@/components/fullscreen-ad-modal";
-import { AdsterraBanner } from "@/components/adsterra-banner";
+import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 import { SubscribeBanner } from "@/components/subscribe-banner";
-import { usePopunder } from "@/hooks/use-popunder";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +35,6 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
-  const { triggerPopunder } = usePopunder();
   const [selectedBotForLogs, setSelectedBotForLogs] = useState<string | null>(null);
   const [botToDelete, setBotToDelete] = useState<string | null>(null);
   const [showClaimDialog, setShowClaimDialog] = useState(false);
@@ -46,7 +44,6 @@ export default function Dashboard() {
   const [selectedBot, setSelectedBot] = useState<any | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showDashboardAd, setShowDashboardAd] = useState(false);
-  const [lastPopunderTime, setLastPopunderTime] = useState<number>(0);
 
   const { data: bots = [], isLoading: isLoadingBots } = useQuery<any[]>({
     queryKey: ["/api/bots"],
@@ -67,6 +64,46 @@ export default function Dashboard() {
       toast({
         title: "Error",
         description: "Failed to restart bot",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: async (botId: string) => {
+      await apiRequest("POST", `/api/bots/${botId}/pause`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Bot paused successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to pause bot",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async (botId: string) => {
+      await apiRequest("POST", `/api/bots/${botId}/resume`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Bot resumed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to resume bot",
         variant: "destructive",
       });
     },
@@ -165,38 +202,17 @@ export default function Dashboard() {
   };
 
   const handleAutoMonitorToggle = async (botId: string, currentStatus: boolean) => {
-    // Auto-monitor is now FREE - no coin check needed
     await enableAutoMonitorMutation.mutateAsync({ botId, enable: !currentStatus });
   };
 
 
   useEffect(() => {
-    // Show fullscreen ad every 15 seconds on dashboard
     const adInterval = setInterval(() => {
       setShowDashboardAd(true);
-    }, 15000); // 15 seconds
+    }, 15000);
 
     return () => clearInterval(adInterval);
   }, []);
-
-  // Add contextual popunder trigger on dashboard clicks
-  useEffect(() => {
-    const handleDashboardClick = () => {
-      const now = Date.now();
-      // Check if 2 minutes have passed since last popunder
-      if (now - lastPopunderTime > 2 * 60 * 1000) {
-        // 30% chance to trigger popunder on any click (after cooldown)
-        if (Math.random() < 0.3) {
-          triggerPopunder();
-          setLastPopunderTime(now);
-        }
-      }
-    };
-
-    // Add click listener to the main dashboard container
-    document.addEventListener('click', handleDashboardClick);
-    return () => document.removeEventListener('click', handleDashboardClick);
-  }, [lastPopunderTime, triggerPopunder]);
 
   if (isLoading || isLoadingBots) {
     return (
@@ -207,7 +223,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PopunderWrapper className="min-h-screen bg-background">
       <Header
         isAuthenticated={true}
         coins={(user as User | null)?.coins ?? 0}
@@ -254,10 +270,14 @@ export default function Dashboard() {
               Manage and monitor your Eclipse-MD bot deployments
             </p>
           </div>
-          <Button onClick={handleDeploy} className="gap-2" data-testid="button-new-deployment">
+          <Button onClick={handleDeploy} className="gap-2" data-testid="button-new-deployment" data-no-popunder>
             <Plus className="h-4 w-4" />
             New Deployment
           </Button>
+        </div>
+
+        <div className="flex justify-center mb-6">
+          <PropellerBanner width={728} height={90} />
         </div>
 
         {bots.length === 0 ? (
@@ -272,6 +292,8 @@ export default function Dashboard() {
                 onRestart={() => restartMutation.mutate(bot._id)}
                 onDelete={() => handleDelete(bot._id)}
                 onEdit={handleEdit}
+                onPause={() => pauseMutation.mutate(bot._id)}
+                onResume={() => resumeMutation.mutate(bot._id)}
                 onAutoMonitorToggle={() => handleAutoMonitorToggle(bot._id, bot.autoMonitor)}
               />
             ))}
@@ -300,10 +322,11 @@ export default function Dashboard() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-no-popunder>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => botToDelete && deleteMutation.mutate(botToDelete)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-no-popunder
             >
               Delete
             </AlertDialogAction>
@@ -323,10 +346,10 @@ export default function Dashboard() {
       />
       
       <div className="mt-12 flex justify-center py-8">
-        <AdsterraBanner width={300} height={250} />
+        <PropellerBanner width={300} height={250} />
       </div>
 
       <SubscribeBanner />
-    </div>
+    </PopunderWrapper>
   );
 }

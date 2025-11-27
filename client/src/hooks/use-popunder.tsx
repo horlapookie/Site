@@ -7,59 +7,29 @@ interface PopunderContextType {
 
 const PopunderContext = createContext<PopunderContextType | undefined>(undefined);
 
-const POPUNDER_COOLDOWN = 1 * 60 * 1000; // 1 minute cooldown between popunders
-const POPUNDER_SCRIPT_URL = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
+const POPUNDER_COOLDOWN = 1 * 60 * 1000;
+const POPUNDER_URL = "https://www.effectivegatecpm.com/bzpj52hfp?key=0d8e8b5faa0f3cda56c69f3b25b0d25b";
 
 export function PopunderProvider({ children }: { children: React.ReactNode }) {
-  const [isPopunderLoaded, setIsPopunderLoaded] = useState(false);
+  const [isPopunderLoaded, setIsPopunderLoaded] = useState(true);
   const lastTriggerTime = useRef<number>(0);
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = POPUNDER_SCRIPT_URL;
-    script.async = true;
-    
-    script.onload = () => {
-      setIsPopunderLoaded(true);
-      console.log('Popunder script loaded successfully');
-    };
-    
-    script.onerror = () => {
-      console.error('Failed to load popunder script');
-      setIsPopunderLoaded(false);
-    };
-
-    scriptRef.current = script;
-    document.body.appendChild(script);
-
-    return () => {
-      if (scriptRef.current && document.body.contains(scriptRef.current)) {
-        document.body.removeChild(scriptRef.current);
-      }
-    };
-  }, []);
 
   const triggerPopunder = () => {
     const now = Date.now();
     const timeSinceLastTrigger = now - lastTriggerTime.current;
 
     if (timeSinceLastTrigger < POPUNDER_COOLDOWN) {
-      const remainingTime = Math.ceil((POPUNDER_COOLDOWN - timeSinceLastTrigger) / 1000 / 60);
-      console.log(`Popunder on cooldown. Please wait ${remainingTime} more minute(s).`);
       return false;
     }
 
     lastTriggerTime.current = now;
-    console.log('Popunder triggered - will open on next user click');
     
-    // Trigger the popunder by opening the Adsterra direct link
-    // This must be called during a real user interaction
     try {
-      const popunderUrl = POPUNDER_SCRIPT_URL.replace('.js', '');
-      window.open(popunderUrl, '_blank');
-      console.log('Popunder window opened');
+      const popunder = window.open(POPUNDER_URL, '_blank');
+      if (popunder) {
+        popunder.blur();
+        window.focus();
+      }
       return true;
     } catch (error) {
       console.error('Failed to open popunder:', error);

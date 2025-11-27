@@ -8,12 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { Gift, Mail, Lock, User, CheckCircle, XCircle } from "lucide-react";
+import { Gift, Mail, Lock, User, CheckCircle, XCircle, Zap } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
-import { AdsterraBanner } from "@/components/adsterra-banner";
+import { PropellerBanner } from "@/components/propeller-banner";
 
 const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -46,7 +46,6 @@ export default function Signup() {
 
   const referralCode = form.watch("referralCode");
 
-  // Auto-populate referral code from URL parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const refCode = params.get('ref');
@@ -55,7 +54,6 @@ export default function Signup() {
     }
   }, [form]);
 
-  // Validate referral code
   const hasReferral = !!referralCode?.trim();
   const { data: referralValidation, isLoading: isValidating } = useQuery<{ valid: boolean }>({
     queryKey: ['/api/referral/validate', referralCode],
@@ -78,10 +76,8 @@ export default function Signup() {
         referralCode: values.referralCode || undefined,
       });
 
-      // Store the JWT token
       setToken(response.token);
 
-      // Invalidate the auth query to refetch user data
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 
       toast({
@@ -100,20 +96,31 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-8">
       <Header isAuthenticated={false} />
 
-      <main className="container px-4 py-16 md:px-6">
-        <div className="mx-auto max-w-md">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Gift className="h-6 w-6 text-primary" />
+      <main className="container px-4 py-8 md:px-6">
+        <div className="mx-auto max-w-lg">
+          <div className="text-center mb-8">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <Gift className="h-8 w-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold">Create Your Account</h1>
+            <p className="text-muted-foreground mt-2">
+              Sign up and get free coins to deploy your first bot
+            </p>
+          </div>
+          
+          <div className="flex justify-center mb-6">
+            <PropellerBanner width={300} height={100} />
+          </div>
+          
+          <Card className="shadow-lg">
+            <CardHeader className="text-center pb-4">
+              <div className="inline-flex items-center gap-2 mx-auto rounded-full border bg-muted px-3 py-1 text-sm">
+                <Zap className="h-4 w-4" />
+                <span>Get 10 free coins on signup</span>
               </div>
-              <CardTitle className="text-2xl">Create Your Account</CardTitle>
-              <CardDescription>
-                Sign up and get free coins to deploy your first bot
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Form {...form}>
@@ -306,6 +313,7 @@ export default function Signup() {
                   <Button 
                     type="submit"
                     className="w-full"
+                    size="lg"
                     disabled={form.formState.isSubmitting || isInvalidReferralCode || !form.watch("acceptPrivacy")}
                     data-testid="button-signup"
                   >
@@ -318,7 +326,7 @@ export default function Signup() {
                 Already have an account?{" "}
                 <button
                   onClick={() => setLocation("/login")}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline font-medium"
                   data-testid="link-login"
                 >
                   Log in
@@ -330,8 +338,9 @@ export default function Signup() {
               </p>
             </CardContent>
           </Card>
-          <div className="mt-8">
-            <AdsterraBanner width={300} height={250} className="mx-auto" />
+          
+          <div className="mt-8 flex justify-center">
+            <PropellerBanner width={300} height={250} />
           </div>
         </div>
       </main>
