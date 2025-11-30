@@ -599,13 +599,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Bot not found" });
       }
 
-      // Try to delete from Heroku, but don't fail if app doesn't exist
+      // Try to delete from Heroku, but don't fail if app doesn't exist or account suspended
       try {
         await deleteApp(bot.herokuAppName);
       } catch (error: any) {
-        // If Heroku app doesn't exist (404), just log and continue
-        if (error.message.includes('404') || error.message.includes('not_found')) {
-          console.log(`Heroku app ${bot.herokuAppName} not found, continuing with MongoDB deletion`);
+        // If Heroku app doesn't exist (404) or account suspended (402), just log and continue
+        if (error.message.includes('404') || error.message.includes('not_found') || 
+            error.message.includes('402') || error.message.includes('delinquent')) {
+          console.log(`Heroku app ${bot.herokuAppName} not found or account suspended, continuing with MongoDB deletion`);
         } else {
           // Re-throw other errors
           throw error;

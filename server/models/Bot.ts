@@ -17,6 +17,7 @@ export interface IBot extends Document {
   autoRecording: boolean;
   status: "running" | "stopped" | "deploying" | "failed";
   herokuAppId?: string;
+  failureCount?: number;
   deployedAt: Date;
   expiresAt: Date;
   createdAt: Date;
@@ -44,6 +45,7 @@ const BotSchema = new Schema<IBot>(
       default: "deploying",
     },
     herokuAppId: { type: String },
+    failureCount: { type: Number, default: 0 },
     deployedAt: { type: Date, default: Date.now },
     expiresAt: { type: Date, required: true },
   },
