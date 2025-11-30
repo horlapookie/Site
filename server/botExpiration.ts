@@ -26,7 +26,7 @@ export async function checkExpiredBots() {
       return; // Exit early if we can't fetch bots
     }
 
-    console.log(`Found ${expiredBots.length} expired bots to process`);
+    console.log(`eclipse [${new Date().toLocaleTimeString()}] Found ${expiredBots.length} expired bots`);
 
     for (const bot of expiredBots) {
       try {
@@ -52,13 +52,13 @@ export async function checkExpiredBots() {
               expiresAt: newExpiresAt
             });
             
-            console.log(`Bot ${bot.herokuAppName} renewed for user ${user.email}`);
+            console.log(`eclipse [${new Date().toLocaleTimeString()}] Bot ${bot.herokuAppName} renewed`);
           } else {
-            console.log(`Failed to deduct coins for bot ${bot.herokuAppName}, deleting`);
+            console.log(`eclipse [${new Date().toLocaleTimeString()}] Failed to deduct coins for ${bot.herokuAppName}`);
             await deleteBotAndCleanup(bot);
           }
         } else {
-          console.log(`User ${user.email} has insufficient coins (${user.coins}/${RENEWAL_COST}) for bot ${bot.herokuAppName}, deleting`);
+          console.log(`eclipse [${new Date().toLocaleTimeString()}] Bot ${bot.herokuAppName} insufficient coins, deleting`);
           await deleteBotAndCleanup(bot);
         }
       } catch (botError: any) {
@@ -92,7 +92,7 @@ async function cleanupOldFailedBots() {
     for (const bot of oldFailedBots) {
       try {
         await deleteBotAndCleanup(bot);
-        console.log(`Deleted old failed bot: ${bot.herokuAppName}`);
+        console.log(`eclipse [${new Date().toLocaleTimeString()}] Deleted old failed ${bot.herokuAppName}`);
       } catch (error: any) {
         console.error(`Error deleting old failed bot ${bot.herokuAppName}:`, error);
       }
@@ -110,7 +110,7 @@ async function deleteBotAndCleanup(bot: any) {
     // Try to delete from Heroku
     try {
       await deleteApp(bot.herokuAppName);
-      console.log(`Deleted Heroku app: ${bot.herokuAppName}`);
+      console.log(`eclipse [${new Date().toLocaleTimeString()}] Deleted ${bot.herokuAppName}`);
     } catch (error: any) {
       if (error.message.includes('404') || error.message.includes('not_found')) {
         console.log(`Heroku app ${bot.herokuAppName} not found, continuing with MongoDB deletion`);
@@ -121,7 +121,7 @@ async function deleteBotAndCleanup(bot: any) {
 
     // Delete from MongoDB
     await Bot.findByIdAndDelete(bot._id);
-    console.log(`Deleted bot ${bot.herokuAppName} from MongoDB`);
+    console.log(`eclipse [${new Date().toLocaleTimeString()}] Cleaned up ${bot.herokuAppName}`);
   } catch (error) {
     console.error(`Error cleaning up bot ${bot.herokuAppName}:`, error);
   }

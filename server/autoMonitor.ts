@@ -9,7 +9,7 @@ const MAX_RESTART_ATTEMPTS = 3; // Maximum failed restart attempts before deleti
 
 async function checkAndRestartBots() {
   try {
-    console.log("Running auto-monitor check...");
+    console.log(`eclipse [${new Date().toLocaleTimeString()}] Auto-monitor check starting`);
     
     // Get all deployed bots that are stopped or failed
     const Bot = (await import("./models/Bot")).default;
@@ -23,7 +23,7 @@ async function checkAndRestartBots() {
           continue;
         }
         
-        console.log(`Auto-monitor: Attempting to restart bot ${bot.herokuAppName} for user ${user.email}`);
+        console.log(`eclipse [${new Date().toLocaleTimeString()}] Attempting restart: ${bot.herokuAppName}`);
         
         // Try to restart the bot (FREE - no coin deduction)
         try {
@@ -35,7 +35,7 @@ async function checkAndRestartBots() {
             failureCount: 0
           });
 
-          console.log(`Auto-monitor: Successfully restarted bot ${bot.herokuAppName} (FREE service)`);
+          console.log(`eclipse [${new Date().toLocaleTimeString()}] Restarted: ${bot.herokuAppName}`);
 
         } catch (restartError: any) {
           console.error(`Auto-monitor: Failed to restart bot ${bot.herokuAppName}:`, restartError.message);
@@ -81,7 +81,7 @@ async function checkAndRestartBots() {
       }
     }
     
-    console.log("Auto-monitor check completed");
+    console.log(`eclipse [${new Date().toLocaleTimeString()}] Auto-monitor check completed`);
   } catch (error: any) {
     console.error("Auto-monitor error:", error.message || error);
   }
