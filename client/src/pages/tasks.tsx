@@ -85,8 +85,25 @@ export default function TasksPage() {
     },
   });
 
-  const loadAdInModal = () => {
+  const AD_PROVIDERS = [
+    '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js',
+    '//www.highperformanceformat.com/d6669b74008f39b4b286c1c5951dc3ee/invoke.js',
+    '//cdn.jsdelivr.net/npm/ad-provider@latest/ad.js',
+  ];
+
+  const loadAdWithFallback = (providerIndex: number = 0) => {
     if (!adContainerRef.current) return;
+    
+    if (providerIndex >= AD_PROVIDERS.length) {
+      toast({
+        title: "All Ad Providers Failed",
+        description: "No available ad providers at the moment. Please try again later.",
+        variant: "destructive",
+      });
+      setShowAdModal(false);
+      setProcessingTaskId(null);
+      return;
+    }
     
     adContainerRef.current.innerHTML = '';
     setAdVerified(false);
@@ -94,9 +111,17 @@ export default function TasksPage() {
     const script = document.createElement('script');
     script.async = true;
     script.setAttribute('data-cfasync', 'false');
-    script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
+    script.src = AD_PROVIDERS[providerIndex];
+    
+    const timeout = setTimeout(() => {
+      if (!setAdVerified || adContainerRef.current?.innerHTML === '') {
+        console.log(`Ad provider ${providerIndex} timed out, trying next...`);
+        loadAdWithFallback(providerIndex + 1);
+      }
+    }, 4000);
     
     script.onload = () => {
+      clearTimeout(timeout);
       setAdVerified(true);
       toast({
         title: "Ad Loaded",
@@ -115,16 +140,16 @@ export default function TasksPage() {
     };
     
     script.onerror = () => {
-      toast({
-        title: "Ad Failed",
-        description: "The ad could not load. Please try again.",
-        variant: "destructive",
-      });
-      setShowAdModal(false);
-      setProcessingTaskId(null);
+      clearTimeout(timeout);
+      console.log(`Ad provider ${providerIndex} failed, trying next...`);
+      loadAdWithFallback(providerIndex + 1);
     };
     
     adContainerRef.current.appendChild(script);
+  };
+
+  const loadAdInModal = () => {
+    loadAdWithFallback(0);
   };
 
   const handleCompleteTask = async (taskId: string, link?: string) => {

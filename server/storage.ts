@@ -414,7 +414,7 @@ export class MongoStorage implements IStorage {
       .limit(limit)
       .lean() as any;
 
-    return transactions.map((t) => ({
+    return transactions.map((t: any) => ({
       id: t._id.toString(),
       type: t.type,
       amount: t.amount,
@@ -487,7 +487,7 @@ export class MongoStorage implements IStorage {
 
   async getAllUsers(): Promise<any[]> {
     const users = await User.find({}).lean() as any;
-    return users.map((user) => ({
+    return users.map((user: any) => ({
       id: user._id.toString(),
       email: user.email,
       firstName: user.firstName,
