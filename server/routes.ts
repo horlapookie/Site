@@ -1047,6 +1047,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to find bot owner by app name
+  app.get("/api/debug/find-bot-owner/:appName", requireAuth, async (req, res) => {
+    try {
+      const appName = req.params.appName;
+      const bot = await Bot.findOne({ herokuAppName: appName });
+
+      if (!bot) {
+        return res.status(404).json({ message: "Bot not found" });
+      }
+
+      const user = await User.findById(bot.userId);
+      
+      res.json({
+        success: true,
+        bot: {
+          appName: bot.herokuAppName,
+          status: bot.status,
+          deployedAt: bot.deployedAt
+        },
+        user: {
+          id: user?._id.toString(),
+          email: user?.email,
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          coins: user?.coins
+        }
+      });
+    } catch (error: any) {
+      console.error("Error finding bot owner:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to find bot owner" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
