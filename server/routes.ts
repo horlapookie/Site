@@ -909,6 +909,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      const isAdTask = taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads';
+      if (isAdTask) {
+        const userAgent = req.headers['user-agent'] || '';
+        const xForwardedFor = req.headers['x-forwarded-for'];
+        const clientIp = typeof xForwardedFor === 'string' ? xForwardedFor.split(',')[0] : req.socket.remoteAddress;
+        
+        console.log(`Ad task completion attempt - Task: ${taskId}, User: ${userId}, IP: ${clientIp}`);
+      }
+
       const existingCompletion = await storage.getTaskCompletion(userId, taskId);
       const today = new Date().toDateString();
       

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth, type User } from "@/hooks/useAuth";
 import { Header } from "@/components/header";
@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle, GitFork } from "lucide-react";
+import { Bell, Eye, MessageCircle, Send, Users, Video, CheckCircle2, Loader2, ExternalLink, AlertCircle, GitFork, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PropellerBanner, PopunderWrapper } from "@/components/propeller-banner";
 import { SubscribeBanner } from "@/components/subscribe-banner";
 import { useCumulativePopunder } from "@/hooks/useCumulativePopunder";
+import { useLocation } from "wouter";
 
 const TASK_ICONS: Record<string, any> = {
   Bell,
@@ -27,11 +29,23 @@ const TASK_ICONS: Record<string, any> = {
 export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [adVerified, setAdVerified] = useState(false);
+  const [adTaskId, setAdTaskId] = useState<string | null>(null);
+  const adContainerRef = useRef<HTMLDivElement>(null);
+  const adTimeoutRef = useRef<NodeJS.Timeout>();
 
   useCumulativePopunder();
+  
+  useEffect(() => {
+    return () => {
+      if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
+    };
+  }, []);
 
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["/api/tasks"],
@@ -71,6 +85,48 @@ export default function TasksPage() {
     },
   });
 
+  const loadAdInModal = () => {
+    if (!adContainerRef.current) return;
+    
+    adContainerRef.current.innerHTML = '';
+    setAdVerified(false);
+    
+    const script = document.createElement('script');
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+    script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
+    
+    script.onload = () => {
+      setAdVerified(true);
+      toast({
+        title: "Ad Loaded",
+        description: "Please watch the ad completely for 8 seconds",
+      });
+      
+      if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
+      adTimeoutRef.current = setTimeout(() => {
+        if (adTaskId) {
+          completeTaskMutation.mutate(adTaskId);
+          setShowAdModal(false);
+          setAdVerified(false);
+          setAdTaskId(null);
+        }
+      }, 8000);
+    };
+    
+    script.onerror = () => {
+      toast({
+        title: "Ad Failed",
+        description: "The ad could not load. Please try again.",
+        variant: "destructive",
+      });
+      setShowAdModal(false);
+      setProcessingTaskId(null);
+    };
+    
+    adContainerRef.current.appendChild(script);
+  };
+
   const handleCompleteTask = async (taskId: string, link?: string) => {
     setProcessingTaskId(taskId);
     
@@ -100,19 +156,11 @@ export default function TasksPage() {
         }
       }
     } else if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
-      const script = document.createElement('script');
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
-      document.body.appendChild(script);
-      
-      toast({
-        title: "Watch Ad",
-        description: "Please watch the ad for 8 seconds to earn coins",
-      });
+      setAdTaskId(taskId);
+      setShowAdModal(true);
       setTimeout(() => {
-        completeTaskMutation.mutate(taskId);
-      }, 8000);
+        loadAdInModal();
+      }, 100);
     } else if (link) {
       window.open(link, '_blank');
       setTimeout(() => {
@@ -134,11 +182,22 @@ export default function TasksPage() {
       />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Tasks & Rewards</h1>
-          <p className="text-muted-foreground">
-            Complete tasks to earn coins and unlock features
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Tasks & Rewards</h1>
+            <p className="text-muted-foreground">
+              Complete tasks to earn coins and unlock features
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation('/dashboard')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
         </div>
 
         <div className="flex justify-center mb-8">
@@ -256,6 +315,43 @@ export default function TasksPage() {
       </main>
 
       <SubscribeBanner />
+      
+      <Dialog open={showAdModal} onOpenChange={(open) => {
+        if (!open && adTimeoutRef.current) {
+          clearTimeout(adTimeoutRef.current);
+          setShowAdModal(false);
+          setProcessingTaskId(null);
+        } else {
+          setShowAdModal(open);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Watch Ad to Earn Coins</DialogTitle>
+            <DialogDescription>
+              Please watch the advertisement completely to earn your coins
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div 
+              ref={adContainerRef} 
+              className="flex items-center justify-center min-h-[300px] rounded-lg border bg-muted/30 p-4"
+            >
+              {!adVerified && (
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Loading ad...</p>
+                </div>
+              )}
+            </div>
+            {adVerified && (
+              <div className="text-center text-sm text-muted-foreground">
+                Please watch the ad for 8 seconds. You'll be redirected automatically.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </PopunderWrapper>
   );
 }
