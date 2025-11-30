@@ -24,6 +24,7 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
   const [checking, setChecking] = useState(true);
   const adContainerRef = useRef<HTMLDivElement>(null);
   const [adKey, setAdKey] = useState(0);
+  const [adVerified, setAdVerified] = useState(false);
 
   const TOTAL_COINS = 10;
   const CLAIM_DELAY = 8000; // 8 seconds per coin
@@ -44,6 +45,7 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
     if (!adContainerRef.current) return;
 
     adContainerRef.current.innerHTML = '';
+    setAdVerified(false);
 
     const configScript = document.createElement('script');
     configScript.type = 'text/javascript';
@@ -61,6 +63,15 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
     const invokeScript = document.createElement('script');
     invokeScript.type = 'text/javascript';
     invokeScript.src = '//www.highperformanceformat.com/d6669b74008f39b4b286c1c5951dc3ee/invoke.js';
+    
+    invokeScript.onload = () => {
+      setAdVerified(true);
+    };
+    
+    invokeScript.onerror = () => {
+      setClaiming(false);
+    };
+    
     adContainerRef.current.appendChild(invokeScript);
   };
 
@@ -86,6 +97,11 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
   const claimOneCoin = async () => {
     if (claiming || claimedCoins >= TOTAL_COINS) return;
     
+    if (!adVerified) {
+      console.error("Ad not verified");
+      return;
+    }
+    
     setClaiming(true);
     setAdKey(prev => prev + 1);
     
@@ -97,6 +113,7 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
+        body: JSON.stringify({ adVerified }),
       });
 
       if (response.ok) {

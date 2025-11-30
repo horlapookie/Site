@@ -246,6 +246,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/coins/claim", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req)!;
+      const { adVerified } = req.body;
+      
+      if (!adVerified) {
+        return res.status(400).json({ message: "Ad verification failed. Please ensure the ad loaded completely." });
+      }
+      
       const result = await storage.claimCoin(userId);
       if (!result.success) {
         return res.status(400).json({ message: "Cannot claim coins yet. Wait 24 hours between claims." });
@@ -903,10 +909,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req)!;
       const { taskId } = req.params;
+      const { adVerified } = req.body;
       const user = await storage.getUser(userId);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
+      }
+
+      const isAdTask = taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads';
+      if (isAdTask && !adVerified) {
+        return res.status(400).json({ message: "Ad verification failed. Please ensure the ad loaded completely." });
       }
 
       const existingCompletion = await storage.getTaskCompletion(userId, taskId);

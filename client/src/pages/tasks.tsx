@@ -30,6 +30,7 @@ export default function TasksPage() {
   const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [viewedTasks, setViewedTasks] = useState<Set<string>>(new Set());
   const [notificationBlocked, setNotificationBlocked] = useState(false);
+  const [adVerified, setAdVerified] = useState(false);
 
   useCumulativePopunder();
 
@@ -50,7 +51,11 @@ export default function TasksPage() {
 
   const completeTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      return await apiRequest("POST", `/api/tasks/${taskId}/complete`, {});
+      const payload: any = {};
+      if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
+        payload.adVerified = adVerified;
+      }
+      return await apiRequest("POST", `/api/tasks/${taskId}/complete`, payload);
     },
     onSuccess: (data) => {
       toast({
@@ -60,6 +65,7 @@ export default function TasksPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setProcessingTaskId(null);
+      setAdVerified(false);
     },
     onError: (error: Error) => {
       toast({
@@ -100,10 +106,30 @@ export default function TasksPage() {
         }
       }
     } else if (taskId === 'view_ads_daily' || taskId === 'watch_5_ads' || taskId === 'watch_10_ads') {
+      setAdVerified(false);
       const script = document.createElement('script');
       script.async = true;
       script.setAttribute('data-cfasync', 'false');
       script.src = '//pl28115724.effectivegatecpm.com/9c/98/0b/9c980b396be0c48001d06b66f9a412ff.js';
+      
+      let adLoaded = false;
+      script.onload = () => {
+        adLoaded = true;
+        setAdVerified(true);
+        toast({
+          title: "Ad Loaded",
+          description: "Ad is now playing. Please watch it completely.",
+        });
+      };
+      script.onerror = () => {
+        toast({
+          title: "Ad Failed",
+          description: "The ad could not be loaded. Please try again later.",
+          variant: "destructive",
+        });
+        setProcessingTaskId(null);
+      };
+      
       document.body.appendChild(script);
       
       toast({
@@ -111,6 +137,15 @@ export default function TasksPage() {
         description: "Please watch the ad for 8 seconds to earn coins",
       });
       setTimeout(() => {
+        if (!adLoaded) {
+          toast({
+            title: "Ad Not Loaded",
+            description: "Please ensure the ad loaded before claiming coins",
+            variant: "destructive",
+          });
+          setProcessingTaskId(null);
+          return;
+        }
         completeTaskMutation.mutate(taskId);
       }, 8000);
     } else if (link) {
