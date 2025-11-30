@@ -186,81 +186,42 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig,
 
 function filterAndFormatLogs(rawLogs: string): string {
   const lines = rawLogs.split('\n');
-  const filtered: string[] = [];
+  const formatted: string[] = [];
   
   for (const line of lines) {
     if (!line.trim()) continue;
     
-    // Filter out noisy lines
-    const noisyPatterns = [
-      /Loaded.*command/i,
-      /Loaded.*alias/i,
-      /Loaded.*self/i,
-      /npm.*notice/i,
-      /npm.*warn/i,
-      /ERR_MODULE_NOT_FOUND/i,
-      /Cannot find module/i,
-      /gyp ERR/i,
-      /gyp info/i,
-    ];
-    
-    let isNoisyLine = false;
-    for (const pattern of noisyPatterns) {
-      if (pattern.test(line)) {
-        isNoisyLine = true;
-        break;
-      }
-    }
-    
-    if (isNoisyLine) continue;
-    
-    // Keep important lines (errors, warnings, important messages)
-    const importantPatterns = [
-      /error/i,
-      /failed/i,
-      /exception/i,
-      /crash/i,
-      /connected/i,
-      /listening/i,
-      /started/i,
-      /running/i,
-      /status/i,
-    ];
-    
-    let isImportant = false;
-    for (const pattern of importantPatterns) {
-      if (pattern.test(line)) {
-        isImportant = true;
-        break;
-      }
-    }
-    
-    // Extract timestamp if it exists
-    let timeStr = '';
-    const timeMatch = line.match(/(\d{1,2}:\d{2}:\d{2})/);
-    if (timeMatch) {
-      timeStr = ` [${timeMatch[1]}]`;
-    }
-    
-    // Clean up the log line - remove timestamps and process markers
+    // Remove sensitive account info (emails, Gmail addresses)
     let cleanedLine = line
-      .replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\s+app\[web\.\d+\]:\s+\d+\[32m/g, '')
-      .replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\s+/g, '')
+      .replace(/[a-zA-Z0-9._%+-]+@gmail\.com/g, '[email hidden]')
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[email hidden]')
+      .replace(/blazetech\d+/g, '[account hidden]')
+      .replace(/kephakings\d*/g, '[account hidden]');
+    
+    // Extract and reformat timestamp - keep it simple
+    let timeStr = '';
+    const timeMatch = cleanedLine.match(/(\d{2}):(\d{2}):(\d{2})/);
+    if (timeMatch) {
+      timeStr = ` [${timeMatch[1]}:${timeMatch[2]}:${timeMatch[3]}]`;
+      // Remove the full ISO timestamp but keep the time
+      cleanedLine = cleanedLine.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\s+/g, '');
+    }
+    
+    // Clean up process markers but keep the actual log message
+    cleanedLine = cleanedLine
       .replace(/app\[web\.\d+\]:\s+/g, '')
-      .replace(/^\[32m/, '')
-      .replace(/\[0m$/, '')
+      .replace(/^\d+\[\d+m/g, '')  // Remove color codes
+      .replace(/\[\d+m$/g, '')      // Remove trailing color codes
       .trim();
     
     if (!cleanedLine) continue;
     
-    if (isImportant) {
-      filtered.push(`eclipse${timeStr} ${cleanedLine}`);
-    }
+    formatted.push(`eclipse${timeStr} ${cleanedLine}`);
   }
   
-  return filtered.length > 0 
-    ? filtered.join('\n') 
-    : 'eclipse [info] Bot is running normally - no issues detected';
+  return formatted.length > 0 
+    ? formatted.join('\n') 
+    : 'eclipse [info] No logs available';
 }
 
 export async function getAppLogs(appName: string, lines: number = 100, apiKeyIndex?: number) {
