@@ -293,32 +293,37 @@ export class MongoStorage implements IStorage {
     }
 
     const today = new Date().toDateString();
-    const userClaim = this.claimCount.get(id);
+    let userClaim = this.claimCount.get(id);
 
-    // If no in-memory claim data, check the database
-    if (!userClaim || userClaim.date !== today) {
+    // If stored date doesn't match today, clear and re-initialize
+    if (userClaim && userClaim.date !== today) {
+      this.claimCount.delete(id);
+      userClaim = undefined;
+    }
+
+    // If no in-memory claim data for today, check the database
+    if (!userClaim) {
       // Check if they can claim (haven't claimed today)
       const canClaim = await this.canClaimCoins(id);
       if (!canClaim) {
         return { success: false, coinsRemaining: 0, totalCoins: user.coins };
       }
-      // Initialize claim tracking for today
+      // Initialize claim tracking for today - start with count 0
       this.claimCount.set(id, { date: today, count: 0 });
+      userClaim = this.claimCount.get(id)!;
     }
 
-    const claimData = this.claimCount.get(id)!;
-
     // Check if they've already claimed 10 coins today
-    if (claimData.count >= 10) {
+    if (userClaim.count >= 10) {
       return { success: false, coinsRemaining: 0, totalCoins: user.coins };
     }
 
     const newCoins = user.coins + 1;
-    claimData.count += 1;
+    userClaim.count += 1;
 
     // Update lastCoinClaim on FIRST claim of the day (when count == 1)
     // This ensures the tracking persists even if server restarts
-    if (claimData.count === 1) {
+    if (userClaim.count === 1) {
       await User.findByIdAndUpdate(id, {
         coins: newCoins,
         lastCoinClaim: new Date(),
@@ -338,7 +343,7 @@ export class MongoStorage implements IStorage {
       balanceAfter: newCoins,
     });
 
-    const coinsRemaining = 10 - claimData.count;
+    const coinsRemaining = 10 - userClaim.count;
 
     return { success: true, coinsRemaining, totalCoins: newCoins };
   }
