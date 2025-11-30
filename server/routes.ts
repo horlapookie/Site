@@ -1021,6 +1021,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to manually delete a bot from Heroku with specific API key
+  app.post("/api/debug/delete-bot", requireAuth, async (req, res) => {
+    try {
+      const { appName, apiKeyIndex } = req.body;
+      
+      if (!appName) {
+        return res.status(400).json({ message: "appName is required" });
+      }
+
+      console.log(`Manual delete request for app: ${appName}, API key: ${apiKeyIndex || 'auto'}`);
+      const result = await deleteApp(appName, apiKeyIndex);
+      
+      res.json({ 
+        success: true, 
+        message: `Bot ${appName} deleted successfully from Heroku`,
+        result
+      });
+    } catch (error: any) {
+      console.error("Error manually deleting bot:", error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Failed to delete bot from Heroku" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
