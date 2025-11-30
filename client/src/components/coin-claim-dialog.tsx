@@ -101,22 +101,29 @@ export function CoinClaimDialog({ open, onOpenChange, onClaimComplete }: CoinCla
 
       if (response.ok) {
         const data = await response.json();
-        setClaimedCoins(prev => prev + 1);
+        const newClaimed = claimedCoins + 1;
+        setClaimedCoins(newClaimed);
         onClaimComplete();
         
-        // Close dialog if all coins claimed
-        if (data.coinsRemaining === 0) {
+        // Close dialog if all 10 coins claimed
+        if (newClaimed >= TOTAL_COINS || data.coinsRemaining <= 0) {
           setTimeout(() => {
             onOpenChange(false);
             setClaimedCoins(0);
             setClaiming(false);
           }, 1000);
         } else {
-          // Wait 5 seconds before allowing next claim
+          // Wait 8 seconds before allowing next claim
           setTimeout(() => {
             setClaiming(false);
           }, CLAIM_DELAY);
         }
+      } else if (response.status === 400) {
+        const error = await response.json();
+        console.error("Error claiming coin:", error.message);
+        // Re-check eligibility in case daily limit was hit
+        await checkClaimEligibility();
+        setClaiming(false);
       } else {
         const error = await response.json();
         console.error("Error claiming coin:", error);

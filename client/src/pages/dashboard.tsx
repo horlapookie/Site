@@ -256,8 +256,17 @@ export default function Dashboard() {
     await enableAutoMonitorMutation.mutateAsync({ botId, enable: !currentStatus });
   };
 
+  const [confirmDeployBotId, setConfirmDeployBotId] = useState<string | null>(null);
+
   const handleDeployLatest = async (botId: string) => {
-    await deployLatestMutation.mutateAsync(botId);
+    setConfirmDeployBotId(botId);
+  };
+
+  const confirmDeployLatest = async () => {
+    if (confirmDeployBotId) {
+      await deployLatestMutation.mutateAsync(confirmDeployBotId);
+      setConfirmDeployBotId(null);
+    }
   };
 
   if (isLoading || isLoadingBots) {
@@ -369,6 +378,23 @@ export default function Dashboard() {
           />
         </div>
       )}
+
+      <AlertDialog open={!!confirmDeployBotId} onOpenChange={() => setConfirmDeployBotId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deploy Latest Commit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will redeploy your bot with the latest commit from your repository. This costs 10 coins.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeployLatest}>
+              Deploy (10 coins)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!botToDelete} onOpenChange={() => setBotToDelete(null)}>
         <AlertDialogContent>
