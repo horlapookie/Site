@@ -191,12 +191,12 @@ function filterAndFormatLogs(rawLogs: string): string {
   for (const line of lines) {
     if (!line.trim()) continue;
     
-    // Remove sensitive account info (emails, Gmail addresses)
+    // Remove sensitive account info (emails, Gmail addresses, account names)
     let cleanedLine = line
-      .replace(/[a-zA-Z0-9._%+-]+@gmail\.com/g, '[email hidden]')
-      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[email hidden]')
-      .replace(/blazetech\d+/g, '[account hidden]')
-      .replace(/kephakings\d*/g, '[account hidden]');
+      .replace(/[a-zA-Z0-9._%+-]+@gmail\.com/g, '')
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '')
+      .replace(/blazetech\d+/g, '')
+      .replace(/kephakings\d*/g, '');
     
     // Extract and reformat timestamp - keep it simple
     let timeStr = '';
@@ -212,6 +212,7 @@ function filterAndFormatLogs(rawLogs: string): string {
       .replace(/app\[web\.\d+\]:\s+/g, '')
       .replace(/^\d+\[\d+m/g, '')  // Remove color codes
       .replace(/\[\d+m$/g, '')      // Remove trailing color codes
+      .replace(/\s+/g, ' ')         // Normalize multiple spaces
       .trim();
     
     if (!cleanedLine) continue;
