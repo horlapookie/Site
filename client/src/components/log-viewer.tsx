@@ -40,14 +40,14 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
         lowerLine.includes('exception') ||
         lowerLine.includes('❌') ||
         lowerLine.includes('✗')) {
-      return "text-red-400";
+      return "text-red-600";
     }
     
     // Warning patterns
     if (lowerLine.includes('warn') || 
         lowerLine.includes('warning') ||
         lowerLine.includes('⚠')) {
-      return "text-yellow-400";
+      return "text-yellow-600";
     }
     
     // Success patterns
@@ -56,24 +56,24 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
         lowerLine.includes('connected') ||
         lowerLine.includes('✓') ||
         lowerLine.includes('✔')) {
-      return "text-green-400";
+      return "text-green-600";
     }
     
     // Info/Debug patterns
     if (lowerLine.includes('info') || 
         lowerLine.includes('debug')) {
-      return "text-blue-400";
+      return "text-blue-600";
     }
     
     // Deployment/Starting patterns
     if (lowerLine.includes('deploy') || 
         lowerLine.includes('start') ||
         lowerLine.includes('running')) {
-      return "text-cyan-400";
+      return "text-cyan-600";
     }
     
     // Default color
-    return "text-gray-300";
+    return "text-gray-700";
   };
 
   return (
@@ -112,7 +112,7 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className={`${isFullscreen ? "h-[calc(100vh-8rem)]" : "h-96"}`} ref={scrollRef}>
-            <div className="bg-black p-4 font-mono text-sm">
+            <div className="bg-white p-4 font-mono text-sm">
               {logLines.length > 0 ? (
                 logLines.map((line: string, index: number) => (
                   <div key={index} className={`mb-1 ${getLogColor(line)}`}>
@@ -120,7 +120,7 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
                   </div>
                 ))
               ) : (
-                <div className="text-center text-gray-500">No logs available yet...</div>
+                <div className="text-center text-gray-400">No logs available yet...</div>
               )}
             </div>
           </ScrollArea>
