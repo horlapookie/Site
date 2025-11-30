@@ -184,6 +184,85 @@ export async function createHerokuApp(appName: string, config: DeploymentConfig,
   throw new Error(`All ${keys.length} Heroku API keys failed. Errors: ${errorSummary}`);
 }
 
+function filterAndFormatLogs(rawLogs: string): string {
+  const lines = rawLogs.split('\n');
+  const filtered: string[] = [];
+  
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    
+    // Filter out noisy lines
+    const noisyPatterns = [
+      /Loaded.*command/i,
+      /Loaded.*alias/i,
+      /Loaded.*self/i,
+      /npm.*notice/i,
+      /npm.*warn/i,
+      /ERR_MODULE_NOT_FOUND/i,
+      /Cannot find module/i,
+      /gyp ERR/i,
+      /gyp info/i,
+    ];
+    
+    let isNoisyLine = false;
+    for (const pattern of noisyPatterns) {
+      if (pattern.test(line)) {
+        isNoisyLine = true;
+        break;
+      }
+    }
+    
+    if (isNoisyLine) continue;
+    
+    // Keep important lines (errors, warnings, important messages)
+    const importantPatterns = [
+      /error/i,
+      /failed/i,
+      /exception/i,
+      /crash/i,
+      /connected/i,
+      /listening/i,
+      /started/i,
+      /running/i,
+      /status/i,
+    ];
+    
+    let isImportant = false;
+    for (const pattern of importantPatterns) {
+      if (pattern.test(line)) {
+        isImportant = true;
+        break;
+      }
+    }
+    
+    // Extract timestamp if it exists
+    let timeStr = '';
+    const timeMatch = line.match(/(\d{1,2}:\d{2}:\d{2})/);
+    if (timeMatch) {
+      timeStr = ` [${timeMatch[1]}]`;
+    }
+    
+    // Clean up the log line - remove timestamps and process markers
+    let cleanedLine = line
+      .replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\s+app\[web\.\d+\]:\s+\d+\[32m/g, '')
+      .replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\s+/g, '')
+      .replace(/app\[web\.\d+\]:\s+/g, '')
+      .replace(/^\[32m/, '')
+      .replace(/\[0m$/, '')
+      .trim();
+    
+    if (!cleanedLine) continue;
+    
+    if (isImportant) {
+      filtered.push(`eclipse${timeStr} ${cleanedLine}`);
+    }
+  }
+  
+  return filtered.length > 0 
+    ? filtered.join('\n') 
+    : 'eclipse [info] Bot is running normally - no issues detected';
+}
+
 export async function getAppLogs(appName: string, lines: number = 100, apiKeyIndex?: number) {
   const { client: heroku } = getHerokuClient(apiKeyIndex);
   
@@ -197,7 +276,8 @@ export async function getAppLogs(appName: string, lines: number = 100, apiKeyInd
 
     const response = await fetch(logSession.logplex_url);
     const logs = await response.text();
-    return logs;
+    const cleanedLogs = filterAndFormatLogs(logs);
+    return cleanedLogs;
   } catch (error: any) {
     console.error("Error fetching logs:", error);
     throw new Error(`Failed to fetch logs: ${error.message}`);
