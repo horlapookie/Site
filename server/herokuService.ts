@@ -272,59 +272,95 @@ export async function restartApp(appName: string, apiKeyIndex?: number) {
 }
 
 export async function pauseApp(appName: string, apiKeyIndex?: number) {
-  const { client: heroku } = getHerokuClient(apiKeyIndex);
-  
-  try {
-    await heroku.patch(`/apps/${appName}/formation/web`, {
-      body: {
-        quantity: 0
-      }
-    });
-    return { success: true, message: "Bot paused successfully" };
-  } catch (error: any) {
-    console.error("Error pausing app:", error);
-    throw new Error(`Failed to pause app: ${error.message}`);
+  const keys = getHerokuApiKeys();
+  const errors: { key: number; error: string }[] = [];
+
+  for (const key of keys) {
+    try {
+      console.log(`Attempting pause with API key ${key.index}`);
+      const { client: heroku } = getHerokuClient(key.index);
+      await heroku.patch(`/apps/${appName}/formation/web`, {
+        body: {
+          quantity: 0
+        }
+      });
+      console.log(`Successfully paused app with API key ${key.index}`);
+      return { success: true, message: "Bot paused successfully" };
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`Pause failed with API key ${key.index}: ${errorMsg}`);
+      errors.push({ key: key.index, error: errorMsg });
+    }
   }
+
+  throw new Error(`Failed to pause app with all API keys: ${errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ')}`);
 }
 
 export async function resumeApp(appName: string, apiKeyIndex?: number) {
-  const { client: heroku } = getHerokuClient(apiKeyIndex);
-  
-  try {
-    await heroku.patch(`/apps/${appName}/formation/web`, {
-      body: {
-        quantity: 1
-      }
-    });
-    return { success: true, message: "Bot resumed successfully" };
-  } catch (error: any) {
-    console.error("Error resuming app:", error);
-    throw new Error(`Failed to resume app: ${error.message}`);
+  const keys = getHerokuApiKeys();
+  const errors: { key: number; error: string }[] = [];
+
+  for (const key of keys) {
+    try {
+      console.log(`Attempting resume with API key ${key.index}`);
+      const { client: heroku } = getHerokuClient(key.index);
+      await heroku.patch(`/apps/${appName}/formation/web`, {
+        body: {
+          quantity: 1
+        }
+      });
+      console.log(`Successfully resumed app with API key ${key.index}`);
+      return { success: true, message: "Bot resumed successfully" };
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`Resume failed with API key ${key.index}: ${errorMsg}`);
+      errors.push({ key: key.index, error: errorMsg });
+    }
   }
+
+  throw new Error(`Failed to resume app with all API keys: ${errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ')}`);
 }
 
 export async function deleteApp(appName: string, apiKeyIndex?: number) {
-  const { client: heroku } = getHerokuClient(apiKeyIndex);
-  
-  try {
-    await heroku.delete(`/apps/${appName}`);
-    return { success: true };
-  } catch (error: any) {
-    console.error("Error deleting app:", error);
-    throw new Error(`Failed to delete app: ${error.message}`);
+  const keys = getHerokuApiKeys();
+  const errors: { key: number; error: string }[] = [];
+
+  for (const key of keys) {
+    try {
+      console.log(`Attempting delete with API key ${key.index}`);
+      const { client: heroku } = getHerokuClient(key.index);
+      await heroku.delete(`/apps/${appName}`);
+      console.log(`Successfully deleted app with API key ${key.index}`);
+      return { success: true };
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`Delete failed with API key ${key.index}: ${errorMsg}`);
+      errors.push({ key: key.index, error: errorMsg });
+    }
   }
+
+  throw new Error(`Failed to delete app with all API keys: ${errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ')}`);
 }
 
 export async function getAppInfo(appName: string, apiKeyIndex?: number) {
-  const { client: heroku } = getHerokuClient(apiKeyIndex);
-  
-  try {
-    const app = await heroku.get(`/apps/${appName}`);
-    return app;
-  } catch (error: any) {
-    console.error("Error getting app info:", error);
-    throw new Error(`Failed to get app info: ${error.message}`);
+  const keys = getHerokuApiKeys();
+  const errors: { key: number; error: string }[] = [];
+
+  for (const key of keys) {
+    try {
+      console.log(`Attempting getAppInfo with API key ${key.index}`);
+      const { client: heroku } = getHerokuClient(key.index);
+      const app = await heroku.get(`/apps/${appName}`);
+      console.log(`Successfully retrieved app info with API key ${key.index}`);
+      return app;
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`getAppInfo failed with API key ${key.index}: ${errorMsg}`);
+      errors.push({ key: key.index, error: errorMsg });
+    }
   }
+
+  throw new Error(`Failed to get app info with all API keys: ${errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ')}`);
 }
 
 export async function tryAllApiKeys<T>(
