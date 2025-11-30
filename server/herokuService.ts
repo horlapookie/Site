@@ -72,73 +72,116 @@ export function getAvailableApiKeys(): { index: number; name: string }[] {
   return getHerokuApiKeys().map(k => ({ index: k.index, name: k.name }));
 }
 
-export async function createHerokuApp(appName: string, config: DeploymentConfig, apiKeyIndex?: number) {
+async function createHerokuAppWithKey(appName: string, config: DeploymentConfig, apiKeyIndex: number) {
   const { client: heroku, keyInfo } = getHerokuClient(apiKeyIndex);
   
-  try {
-    const app = await heroku.post("/apps", {
-      body: {
-        name: appName,
-        region: "us",
-        stack: "heroku-22",
-      },
-    });
+  const app = await heroku.post("/apps", {
+    body: {
+      name: appName,
+      region: "us",
+      stack: "heroku-22",
+    },
+  });
 
-    await heroku.patch(`/apps/${appName}/config-vars`, {
-      body: {
-        NODE_ENV: "production",
-        BOT_PREFIX: config.prefix,
-        BOT_NUMBER: config.botNumber,
-        BOT_OWNER_NAME: "Eclipse",
-        BOT_NAME: "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻",
-        BOT_SESSION_DATA: config.sessionData,
-        ...(config.openaiKey && { OPENAI_API_KEY: config.openaiKey }),
-        ...(config.geminiKey && { GEMINI_API_KEY: config.geminiKey }),
-        AUTO_VIEW_MESSAGE: config.autoViewMessage.toString(),
-        AUTO_VIEW_STATUS: config.autoViewStatus.toString(),
-        AUTO_REACT_STATUS: config.autoReactStatus.toString(),
-        AUTO_REACT: config.autoReact.toString(),
-        AUTO_STATUS_EMOJI: "❤️",
-        AUTO_TYPING: config.autoTyping.toString(),
-        AUTO_RECORDING: config.autoRecording.toString(),
-      },
-    });
+  await heroku.patch(`/apps/${appName}/config-vars`, {
+    body: {
+      NODE_ENV: "production",
+      BOT_PREFIX: config.prefix,
+      BOT_NUMBER: config.botNumber,
+      BOT_OWNER_NAME: "Eclipse",
+      BOT_NAME: "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻",
+      BOT_SESSION_DATA: config.sessionData,
+      ...(config.openaiKey && { OPENAI_API_KEY: config.openaiKey }),
+      ...(config.geminiKey && { GEMINI_API_KEY: config.geminiKey }),
+      AUTO_VIEW_MESSAGE: config.autoViewMessage.toString(),
+      AUTO_VIEW_STATUS: config.autoViewStatus.toString(),
+      AUTO_REACT_STATUS: config.autoReactStatus.toString(),
+      AUTO_REACT: config.autoReact.toString(),
+      AUTO_STATUS_EMOJI: "❤️",
+      AUTO_TYPING: config.autoTyping.toString(),
+      AUTO_RECORDING: config.autoRecording.toString(),
+    },
+  });
 
-    await heroku.put(`/apps/${appName}/buildpack-installations`, {
-      body: {
-        updates: [
-          {
-            buildpack: "heroku/nodejs",
-          },
-        ],
-      },
-    });
-
-    const build = await heroku.post(`/apps/${appName}/builds`, {
-      body: {
-        source_blob: {
-          url: "https://github.com/horlapookie/Eclipse-MD/tarball/main",
-          version: "main",
+  await heroku.put(`/apps/${appName}/buildpack-installations`, {
+    body: {
+      updates: [
+        {
+          buildpack: "heroku/nodejs",
         },
-      },
-    });
+      ],
+    },
+  });
 
-    return {
-      appId: app.id,
-      appName: app.name,
-      buildId: build.id,
-      webUrl: app.web_url,
-      apiKeyUsed: keyInfo.index,
-    };
-  } catch (error: any) {
-    console.error("Heroku deployment error:", error);
-    
-    if (error.statusCode === 422 && error.body?.id === 'verification_required') {
-      throw new Error('Heroku account verification required. Please add payment information at https://heroku.com/verify');
-    }
-    
-    throw new Error(`Failed to deploy to Heroku: ${error.message}`);
+  const build = await heroku.post(`/apps/${appName}/builds`, {
+    body: {
+      source_blob: {
+        url: "https://github.com/horlapookie/Eclipse-MD/tarball/main",
+        version: "main",
+      },
+    },
+  });
+
+  return {
+    appId: app.id,
+    appName: app.name,
+    buildId: build.id,
+    webUrl: app.web_url,
+    apiKeyUsed: keyInfo.index,
+  };
+}
+
+export async function createHerokuApp(appName: string, config: DeploymentConfig, apiKeyIndex?: number) {
+  const keys = getHerokuApiKeys();
+  
+  if (keys.length === 0) {
+    throw new Error('No Heroku API keys configured. Please add at least one HEROKU_API_KEY.');
   }
+
+  const startIndex = apiKeyIndex !== undefined ? apiKeyIndex : 1;
+  const errors: { key: number; error: string }[] = [];
+
+  for (let i = 0; i < keys.length; i++) {
+    const currentKeyIndex = (startIndex + i - 1) % keys.length + 1;
+    const key = keys.find(k => k.index === currentKeyIndex);
+    
+    if (!key) continue;
+
+    try {
+      console.log(`Attempting deployment with Heroku API key ${key.index} (${key.name})`);
+      const result = await createHerokuAppWithKey(appName, config, currentKeyIndex);
+      console.log(`Successfully deployed with API key ${key.index}`);
+      return result;
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`Deployment failed with API key ${key.index}: ${errorMsg}`);
+      
+      errors.push({ key: key.index, error: errorMsg });
+
+      if (error.statusCode === 422 && error.body?.id === 'verification_required') {
+        console.log(`API key ${key.index} requires verification. Trying next key...`);
+        continue;
+      }
+      
+      if (error.statusCode === 402) {
+        console.log(`API key ${key.index} account suspended/payment required. Trying next key...`);
+        continue;
+      }
+
+      if (error.statusCode === 404) {
+        console.log(`API key ${key.index} not found. Trying next key...`);
+        continue;
+      }
+
+      if (i < keys.length - 1) {
+        console.log(`API key ${key.index} failed. Trying next key...`);
+        continue;
+      }
+    }
+  }
+
+  const errorSummary = errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ');
+  throw new Error(`All ${keys.length} Heroku API keys failed. Errors: ${errorSummary}`);
 }
 
 export async function getAppLogs(appName: string, lines: number = 100, apiKeyIndex?: number) {
@@ -162,51 +205,70 @@ export async function getAppLogs(appName: string, lines: number = 100, apiKeyInd
 }
 
 export async function updateHerokuApp(appName: string, config: DeploymentConfig, apiKeyIndex?: number) {
-  const { client: heroku } = getHerokuClient(apiKeyIndex);
-  
-  try {
-    await heroku.patch(`/apps/${appName}/config-vars`, {
-      body: {
-        NODE_ENV: "production",
-        BOT_PREFIX: config.prefix,
-        BOT_NUMBER: config.botNumber,
-        BOT_OWNER_NAME: "Eclipse",
-        BOT_NAME: "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻",
-        BOT_SESSION_DATA: config.sessionData,
-        ...(config.openaiKey && { OPENAI_API_KEY: config.openaiKey }),
-        ...(config.geminiKey && { GEMINI_API_KEY: config.geminiKey }),
-        AUTO_VIEW_MESSAGE: config.autoViewMessage.toString(),
-        AUTO_VIEW_STATUS: config.autoViewStatus.toString(),
-        AUTO_REACT_STATUS: config.autoReactStatus.toString(),
-        AUTO_REACT: config.autoReact.toString(),
-        AUTO_STATUS_EMOJI: "❤️",
-        AUTO_TYPING: config.autoTyping.toString(),
-        AUTO_RECORDING: config.autoRecording.toString(),
-      },
-    });
+  const keys = getHerokuApiKeys();
+  const errors: { key: number; error: string }[] = [];
 
-    await heroku.delete(`/apps/${appName}/dynos`);
+  for (const key of keys) {
+    try {
+      console.log(`Attempting update with API key ${key.index}`);
+      const { client: heroku } = getHerokuClient(key.index);
+      
+      await heroku.patch(`/apps/${appName}/config-vars`, {
+        body: {
+          NODE_ENV: "production",
+          BOT_PREFIX: config.prefix,
+          BOT_NUMBER: config.botNumber,
+          BOT_OWNER_NAME: "Eclipse",
+          BOT_NAME: "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻",
+          BOT_SESSION_DATA: config.sessionData,
+          ...(config.openaiKey && { OPENAI_API_KEY: config.openaiKey }),
+          ...(config.geminiKey && { GEMINI_API_KEY: config.geminiKey }),
+          AUTO_VIEW_MESSAGE: config.autoViewMessage.toString(),
+          AUTO_VIEW_STATUS: config.autoViewStatus.toString(),
+          AUTO_REACT_STATUS: config.autoReactStatus.toString(),
+          AUTO_REACT: config.autoReact.toString(),
+          AUTO_STATUS_EMOJI: "❤️",
+          AUTO_TYPING: config.autoTyping.toString(),
+          AUTO_RECORDING: config.autoRecording.toString(),
+        },
+      });
 
-    return {
-      success: true,
-      message: "Bot configuration updated and restarted successfully",
-    };
-  } catch (error: any) {
-    console.error("Heroku update error:", error);
-    throw new Error(`Failed to update Heroku app: ${error.message}`);
+      await heroku.delete(`/apps/${appName}/dynos`);
+      console.log(`Successfully updated app with API key ${key.index}`);
+
+      return {
+        success: true,
+        message: "Bot configuration updated and restarted successfully",
+      };
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`Update failed with API key ${key.index}: ${errorMsg}`);
+      errors.push({ key: key.index, error: errorMsg });
+    }
   }
+
+  throw new Error(`Failed to update Heroku app with all API keys: ${errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ')}`);
 }
 
 export async function restartApp(appName: string, apiKeyIndex?: number) {
-  const { client: heroku } = getHerokuClient(apiKeyIndex);
-  
-  try {
-    await heroku.delete(`/apps/${appName}/dynos`);
-    return { success: true };
-  } catch (error: any) {
-    console.error("Error restarting app:", error);
-    throw new Error(`Failed to restart app: ${error.message}`);
+  const keys = getHerokuApiKeys();
+  const errors: { key: number; error: string }[] = [];
+
+  for (const key of keys) {
+    try {
+      console.log(`Attempting restart with API key ${key.index}`);
+      const { client: heroku } = getHerokuClient(key.index);
+      await heroku.delete(`/apps/${appName}/dynos`);
+      console.log(`Successfully restarted app with API key ${key.index}`);
+      return { success: true };
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error(`Restart failed with API key ${key.index}: ${errorMsg}`);
+      errors.push({ key: key.index, error: errorMsg });
+    }
   }
+
+  throw new Error(`Failed to restart app with all API keys: ${errors.map(e => `Key ${e.key}: ${e.error}`).join(' | ')}`);
 }
 
 export async function pauseApp(appName: string, apiKeyIndex?: number) {
