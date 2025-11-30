@@ -198,11 +198,11 @@ function filterAndFormatLogs(rawLogs: string): string {
       .replace(/blazetech\d+/g, '')
       .replace(/kephakings\d*/g, '');
     
-    // Extract and reformat timestamp - keep it simple
+    // Extract and reformat timestamp - keep it short (HH:MM only)
     let timeStr = '';
-    const timeMatch = cleanedLine.match(/(\d{2}):(\d{2}):(\d{2})/);
+    const timeMatch = cleanedLine.match(/(\d{2}):(\d{2})/);
     if (timeMatch) {
-      timeStr = ` [${timeMatch[1]}:${timeMatch[2]}:${timeMatch[3]}]`;
+      timeStr = `${timeMatch[1]}:${timeMatch[2]}`;
       // Remove the full ISO timestamp but keep the time
       cleanedLine = cleanedLine.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+\+\d{2}:\d{2}\s+/g, '');
     }
@@ -217,7 +217,9 @@ function filterAndFormatLogs(rawLogs: string): string {
     
     if (!cleanedLine) continue;
     
-    formatted.push(`eclipse${timeStr} ${cleanedLine}`);
+    // Format: "eclipse 12:34 | actual log message"
+    const prefix = timeStr ? `eclipse ${timeStr} |` : 'eclipse |';
+    formatted.push(`${prefix} ${cleanedLine}`);
   }
   
   return formatted.length > 0 

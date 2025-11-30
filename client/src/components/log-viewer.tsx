@@ -31,6 +31,21 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
     }
   }, [autoScroll]);
 
+  const parseLogLine = (line: string) => {
+    // Parse "eclipse HH:MM | message" format
+    const match = line.match(/^(eclipse\s+\d{2}:\d{2}\s+\|)\s*(.*)$/);
+    if (match) {
+      return {
+        prefix: match[1],
+        message: match[2]
+      };
+    }
+    return {
+      prefix: null,
+      message: line
+    };
+  };
+
   const getLogColor = (line: string) => {
     const lowerLine = line.toLowerCase();
     
@@ -114,11 +129,15 @@ export function LogViewer({ botId, onClose }: LogViewerProps) {
           <ScrollArea className={`${isFullscreen ? "h-[calc(100vh-8rem)]" : "h-96"}`} ref={scrollRef}>
             <div className="bg-white p-4 font-mono text-sm">
               {logLines.length > 0 ? (
-                logLines.map((line: string, index: number) => (
-                  <div key={index} className={`mb-1 ${getLogColor(line)}`}>
-                    {line}
-                  </div>
-                ))
+                logLines.map((line: string, index: number) => {
+                  const { prefix, message } = parseLogLine(line);
+                  return (
+                    <div key={index} className="mb-1 flex items-start gap-2">
+                      {prefix && <span className="text-xs text-gray-400 flex-shrink-0">{prefix}</span>}
+                      <span className={getLogColor(message)}>{message}</span>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center text-gray-400">No logs available yet...</div>
               )}
