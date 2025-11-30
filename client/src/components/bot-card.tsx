@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Terminal, Trash2, RotateCw, Edit, Pause, Play } from "lucide-react";
+import { Terminal, Trash2, RotateCw, Edit, Pause, Play, Upload } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
 interface Bot {
@@ -22,6 +22,7 @@ interface BotCardProps {
   onPause?: (botId: string) => void;
   onResume?: (botId: string) => void;
   onAutoMonitorToggle?: () => void;
+  onDeployLatest?: (botId: string) => void;
 }
 
 const statusConfig = {
@@ -31,7 +32,7 @@ const statusConfig = {
   failed: { label: "Failed", variant: "destructive" as const, color: "bg-red-500" },
 };
 
-export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit, onPause, onResume }: BotCardProps) {
+export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit, onPause, onResume, onDeployLatest }: BotCardProps) {
   if (!bot || !bot.status) {
     return null;
   }
@@ -41,6 +42,7 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit, onPause,
   const canPause = bot.status === "running";
   const canResume = bot.status === "stopped";
   const canRestart = bot.status === "running" || bot.status === "failed";
+  const canDeployLatest = bot.status === "running";
 
   return (
     <Card className="p-6">
@@ -105,6 +107,17 @@ export function BotCard({ bot, onViewLogs, onRestart, onDelete, onEdit, onPause,
             data-testid={`button-resume-${bot._id}`}
           >
             <Play className="w-4 h-4" />
+          </Button>
+        )}
+        {canDeployLatest && onDeployLatest && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDeployLatest(bot._id)}
+            title="Deploy Latest Commit (10 coins)"
+            data-testid={`button-deploy-latest-${bot._id}`}
+          >
+            <Upload className="w-4 h-4" />
           </Button>
         )}
         <Button

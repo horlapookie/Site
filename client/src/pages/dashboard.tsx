@@ -113,6 +113,27 @@ export default function Dashboard() {
     },
   });
 
+  const deployLatestMutation = useMutation({
+    mutationFn: async (botId: string) => {
+      await apiRequest("POST", `/api/bots/${botId}/deploy-latest`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Deploy latest commit started (10 coins deducted)",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/bots"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to deploy latest commit",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (botId: string) => {
       await apiRequest("DELETE", `/api/bots/${botId}`);
@@ -235,6 +256,10 @@ export default function Dashboard() {
     await enableAutoMonitorMutation.mutateAsync({ botId, enable: !currentStatus });
   };
 
+  const handleDeployLatest = async (botId: string) => {
+    await deployLatestMutation.mutateAsync(botId);
+  };
+
   if (isLoading || isLoadingBots) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -327,6 +352,7 @@ export default function Dashboard() {
                 onPause={() => pauseMutation.mutate(bot._id)}
                 onResume={() => resumeMutation.mutate(bot._id)}
                 onAutoMonitorToggle={() => handleAutoMonitorToggle(bot._id, bot.autoMonitor)}
+                onDeployLatest={handleDeployLatest}
               />
             ))}
           </div>

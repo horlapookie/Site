@@ -456,6 +456,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deploy latest commit (costs 10 coins)
+  app.post("/api/bots/:id/deploy-latest", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const bot = await Bot.findOne({ _id: req.params.id, userId });
+
+      if (!bot) {
+        return res.status(404).json({ message: "Bot not found" });
+      }
+
+      // Check if user has enough coins
+      const user = await storage.getUser(userId);
+      if (!user || user.coins < DEPLOYMENT_COST) {
+        return res.status(400).json({ message: "Insufficient coins. You need 10 coins to deploy latest commit." });
+      }
+
+      // Deduct coins
+      const deducted = await storage.deductCoins(userId, DEPLOYMENT_COST);
+      if (!deducted) {
+        return res.status(400).json({ message: "Failed to deduct coins" });
+      }
+
+      // Update bot status to deploying
+      await Bot.findByIdAndUpdate(bot._id, { status: "deploying" });
+
+      // Deploy to Heroku asynchronously using existing credentials
+      updateHerokuApp(bot.herokuAppName, {
+        botNumber: bot.botNumber,
+        sessionData: bot.sessionData,
+        prefix: bot.prefix,
+        openaiKey: bot.openaiKey,
+        geminiKey: bot.geminiKey,
+        autoViewMessage: bot.autoViewMessage,
+        autoViewStatus: bot.autoViewStatus,
+        autoReactStatus: bot.autoReactStatus,
+        autoReact: bot.autoReact,
+        autoTyping: bot.autoTyping,
+        autoRecording: bot.autoRecording,
+      })
+        .then(async () => {
+          await Bot.findByIdAndUpdate(bot._id, { status: "running" });
+        })
+        .catch(async (error) => {
+          console.error("Deploy latest commit failed:", error);
+          await Bot.findByIdAndUpdate(bot._id, { status: "failed" });
+
+          // Refund coins on failure
+          const currentUser = await storage.getUser(userId);
+          if (currentUser) {
+            await storage.updateUserCoins(userId, currentUser.coins + DEPLOYMENT_COST);
+          }
+        });
+
+      res.json({ message: "Deploy latest commit started" });
+    } catch (error) {
+      console.error("Error deploying latest commit:", error);
+      res.status(500).json({ message: "Failed to deploy latest commit" });
+    }
+  });
+
   // Pause bot
   app.post("/api/bots/:id/pause", requireAuth, async (req, res) => {
     try {
