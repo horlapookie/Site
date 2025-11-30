@@ -270,9 +270,9 @@ export class MongoStorage implements IStorage {
     const user = await this.getUser(id);
     if (!user) return false;
 
-    const now = new Date();
     const lastClaim = user.lastCoinClaim;
-
+    
+    // If never claimed before, they can claim
     if (!lastClaim) return true;
 
     // Check if last claim was today (same date)
@@ -283,7 +283,26 @@ export class MongoStorage implements IStorage {
     const todayDateStr = todayDate.toDateString();
     
     // If the dates are different (different days), user can claim again
-    return lastClaimDateStr !== todayDateStr;
+    if (lastClaimDateStr !== todayDateStr) {
+      return true;
+    }
+
+    // If claimed today, check if they've reached 10 coins
+    // Count claim transactions for today
+    const todayStart = new Date(todayDate);
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const todayEnd = new Date(todayDate);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todaysClaims = await Transaction.countDocuments({
+      userId: id,
+      type: "claim",
+      createdAt: { $gte: todayStart, $lte: todayEnd },
+    });
+
+    // If they've claimed less than 10 today, they can claim more
+    return todaysClaims < 10;
   }
 
   async claimCoin(id: string): Promise<{ success: boolean; coinsRemaining: number; totalCoins: number }> {
@@ -292,38 +311,35 @@ export class MongoStorage implements IStorage {
       return { success: false, coinsRemaining: 0, totalCoins: 0 };
     }
 
-    const today = new Date().toDateString();
-    let userClaim = this.claimCount.get(id);
-
-    // If stored date doesn't match today, clear and re-initialize
-    if (userClaim && userClaim.date !== today) {
-      this.claimCount.delete(id);
-      userClaim = undefined;
+    // Check if they can claim
+    const canClaim = await this.canClaimCoins(id);
+    if (!canClaim) {
+      return { success: false, coinsRemaining: 0, totalCoins: user.coins };
     }
 
-    // If no in-memory claim data for today, check the database
-    if (!userClaim) {
-      // Check if they can claim (haven't claimed today)
-      const canClaim = await this.canClaimCoins(id);
-      if (!canClaim) {
-        return { success: false, coinsRemaining: 0, totalCoins: user.coins };
-      }
-      // Initialize claim tracking for today - start with count 0
-      this.claimCount.set(id, { date: today, count: 0 });
-      userClaim = this.claimCount.get(id)!;
-    }
+    // Count how many coins they've claimed today from transactions
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todaysClaims = await Transaction.countDocuments({
+      userId: id,
+      type: "claim",
+      createdAt: { $gte: todayStart, $lte: todayEnd },
+    });
 
     // Check if they've already claimed 10 coins today
-    if (userClaim.count >= 10) {
+    if (todaysClaims >= 10) {
       return { success: false, coinsRemaining: 0, totalCoins: user.coins };
     }
 
     const newCoins = user.coins + 1;
-    userClaim.count += 1;
 
     // Update lastCoinClaim on FIRST claim of the day (when count == 1)
     // This ensures the tracking persists even if server restarts
-    if (userClaim.count === 1) {
+    if (todaysClaims === 0) {
       await User.findByIdAndUpdate(id, {
         coins: newCoins,
         lastCoinClaim: new Date(),
@@ -343,7 +359,7 @@ export class MongoStorage implements IStorage {
       balanceAfter: newCoins,
     });
 
-    const coinsRemaining = 10 - userClaim.count;
+    const coinsRemaining = 10 - (todaysClaims + 1);
 
     return { success: true, coinsRemaining, totalCoins: newCoins };
   }
